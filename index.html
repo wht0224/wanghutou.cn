@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全能文档查看器 - 全能·安全·高效 (Beta)</title>
+    <meta name="description" content="新一代全能文档查看工具，集成AI助手，支持代码、PDF、视频等多种格式。(Beta版)">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        .glass-card:hover {
+            border-color: rgba(96, 165, 250, 0.5);
+            box-shadow: 0 0 25px rgba(96, 165, 250, 0.2);
+        }
+        /* 高光特效 */
+        .glow-ring {
+            position: relative;
+        }
+        .glow-ring::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 110%;
+            height: 110%;
+            border-radius: inherit;
+            background: linear-gradient(135deg, #60A5FA, #A78BFA, transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            z-index: -1;
+        }
+        .glow-ring:hover::after {
+            opacity: 0.4;
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+        /* 背景光效动画 */
+        .bg-light-animate {
+            background: radial-gradient(circle at var(--x) var(--y), rgba(96, 165, 250, 0.15), transparent 70%);
+            animation: light-pulse 8s infinite alternate;
+        }
+        @keyframes light-pulse {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        /* Beta标签样式 */
+        .beta-badge {
+            background: linear-gradient(135deg, #F472B6, #EC4899);
+            transform: rotate(-10deg);
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: rotate(-10deg) translateY(0); }
+            50% { transform: rotate(-10deg) translateY(-5px); }
+        }
+        /* 按钮高光 */
+        .btn-glow:hover {
+            box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen overflow-x-hidden">
+    <!-- 背景光效容器 -->
+    <div class="fixed inset-0 bg-light-animate -z-10" id="bg-light"></div>
+
+    <!-- Navbar -->
+    <nav class="fixed w-full z-50 bg-slate-900/90 backdrop-blur-sm border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-layer-group text-white text-sm"></i>
+                    </div>
+                    <span class="font-bold text-xl tracking-tight">
+                        全能文档查看器
+                        <span class="beta-badge text-xs font-bold px-2 py-1 rounded-full ml-2 text-white">BETA</span>
+                    </span>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">功能特性</a>
+                    <a href="#download" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">下载</a>
+                    <a href="#donate" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">支持我们</a>
+                    <a href="#contact" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">联系我们</a>
+                    <!-- 语言切换按钮 -->
+                    <button id="lang-toggle" class="px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700 transition-colors text-sm border border-slate-700">
+                        <span class="lang-zh">切换英文</span>
+                        <span class="lang-en hidden">Switch to CN</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative pt-32 pb-20 sm:pt-40 sm:pb-24 overflow-hidden">
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
+            <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight mb-8">
+                <span class="block lang-zh">重新定义</span>
+                <span class="block lang-en hidden">Redefine</span>
+                <span class="block gradient-text mt-2 lang-zh">文档阅读体验</span>
+                <span class="block gradient-text mt-2 lang-en hidden">Document Reading Experience</span>
+            </h1>
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
+                <span class="lang-zh">集成 MiniMind2 本地 AI 助手，支持 50+ 种文件格式。<br></span>
+                <span class="lang-en hidden">Integrated with MiniMind2 local AI assistant, supports 50+ file formats.<br></span>
+                <span class="text-blue-400 lang-zh">全能</span>
+                <span class="text-blue-400 lang-en hidden">All-in-One</span>
+                · <span class="text-green-400 lang-zh">安全</span>
+                <span class="text-green-400 lang-en hidden">Secure</span>
+                · <span class="text-purple-400 lang-zh">高效</span>
+                <span class="text-purple-400 lang-en hidden">Efficient</span>
+                <span class="block text-sm mt-2 text-pink-400 font-medium">
+                    <i class="fas fa-exclamation-circle"></i> 
+                    <span class="lang-zh">当前为 Beta 测试版，欢迎反馈问题</span>
+                    <span class="lang-en hidden">Beta Version - Feedback Welcome</span>
+                </span>
+            </p>
+            <div class="mt-10 flex justify-center gap-4 flex-wrap">
+                <a href="#download" class="px-8 py-4 rounded-full bg-blue-600 hover:bg-blue-700 transition-all transform hover:scale-105 font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 btn-glow glow-ring">
+                    <i class="fab fa-windows"></i> 
+                    <span class="lang-zh">免费下载 v1.0</span>
+                    <span class="lang-en hidden">Free Download v1.0</span>
+                </a>
+                <a href="https://github.com/wanghutou/AllPurposeViewer" target="_blank" class="px-8 py-4 rounded-full bg-slate-800 hover:bg-slate-700 transition-all border border-slate-700 font-bold flex items-center gap-2 btn-glow">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+        
+        <!-- Background Elements -->
+        <div class="absolute top-0 left-1/2 w-full -translate-x-1/2 h-full z-0 pointer-events-none">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
+            <div class="absolute top-1/2 left-1/4 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+        </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div id="features" class="py-20 bg-slate-800/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold lang-zh">核心功能</h2>
+                <h2 class="text-3xl font-bold lang-en hidden">Core Features</h2>
+                <p class="mt-4 text-slate-400 lang-zh">专为开发者和极客打造的终极工具</p>
+                <p class="mt-4 text-slate-400 lang-en hidden">The ultimate tool for developers and geeks</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass-card p-8 rounded-2xl glow-ring">
+                    <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/10">
+                        <i class="fas fa-brain text-blue-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 lang-zh">AI 智能助手</h3>
+                    <h3 class="text-xl font-bold mb-3 lang-en hidden">AI Intelligent Assistant</h3>
+                    <p class="text-slate-400 leading-relaxed lang-zh">内置 MiniMind2 本地大模型，无需联网即可分析代码、提取摘要，数据隐私绝对安全。</p>
+                    <p class="text-slate-400 leading-relaxed lang-en hidden">Built-in MiniMind2 local large model, analyze code and extract summaries without internet, ensuring absolute data privacy.</p>
+                </div>
+                <!-- Feature 2 -->
+                <div class="glass-card p-8 rounded-2xl glow-ring">
+                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-green-500/10">
+                        <i class="fas fa-file-code text-green-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 lang-zh">全格式支持</h3>
+                    <h3 class="text-xl font-bold mb-3 lang-en hidden">Full Format Support</h3>
+                    <p class="text-slate-400 leading-relaxed lang-zh">原生支持 Python, Markdown, JSON, PDF, 视频以及二进制 Hex 查看，一站式解决所有需求。</p>
+                    <p class="text-slate-400 leading-relaxed lang-en hidden">Natively supports Python, Markdown, JSON, PDF, video and binary Hex viewing, one-stop solution for all needs.</p>
+                </div>
+                <!-- Feature 3 -->
+                <div class="glass-card p-8 rounded-2xl glow-ring">
+                    <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-purple-500/10">
+                        <i class="fas fa-bolt text-purple-400 text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 lang-zh">极致性能</h3>
+                    <h3 class="text-xl font-bold mb-3 lang-en hidden">Extreme Performance</h3>
+                    <p class="text-slate-400 leading-relaxed lang-zh">基于 PySide6 构建的现代化界面，启动速度快，资源占用低，支持暗黑模式和自定义快捷键。</p>
+                    <p class="text-slate-400 leading-relaxed lang-en hidden">Modern interface built on PySide6, fast startup, low resource usage, supports dark mode and custom shortcuts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Section -->
+    <div id="download" class="py-20 relative overflow-hidden">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-4xl font-bold mb-8 lang-zh">准备好体验了吗？</h2>
+            <h2 class="text-4xl font-bold mb-8 lang-en hidden">Ready to Experience?</h2>
+            <div class="glass-card p-8 rounded-2xl inline-block w-full max-w-2xl glow-ring">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="text-left">
+                        <h3 class="text-2xl font-bold">AllPurposeViewer v1.0 
+                            <span class="beta-badge text-xs font-bold px-2 py-1 rounded-full ml-2 text-white">BETA</span>
+                        </h3>
+                        <p class="text-slate-400 mt-2 lang-zh">Windows 10/11 x64 | 包含完整 AI 模型</p>
+                        <p class="text-slate-400 mt-2 lang-en hidden">Windows 10/11 x64 | Includes full AI model</p>
+                    </div>
+                    <a href="https://github.com/wanghutou/AllPurposeViewer/releases/latest" class="px-8 py-4 bg-green-600 hover:bg-green-700 rounded-xl font-bold transition-all shadow-lg flex items-center gap-3 w-full md:w-auto justify-center btn-glow">
+                        <i class="fas fa-download"></i>
+                        <span class="lang-zh">前往下载页面</span>
+                        <span class="lang-en hidden">Go to Download Page</span>
+                    </a>
+                </div>
+                <div class="mt-6 pt-6 border-t border-slate-700 text-sm text-slate-500 flex flex-wrap justify-center gap-6 items-center">
+                    <span><i class="fas fa-check-circle text-green-500 mr-2"></i><span class="lang-zh">开源免费</span><span class="lang-en hidden">Open Source & Free</span></span>
+                    <span><i class="fas fa-shield-alt text-blue-500 mr-2"></i><span class="lang-zh">无广告无弹窗</span><span class="lang-en hidden">No Ads & Pop-ups</span></span>
+                    <span><i class="fas fa-rocket text-purple-500 mr-2"></i><span class="lang-zh">持续更新迭代</span><span class="lang-en hidden">Continuous Updates</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Donate Section -->
+    <div id="donate" class="py-20 bg-slate-800/30">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold mb-4 lang-zh">💖 感谢支持</h2>
+            <h2 class="text-3xl font-bold mb-4 lang-en hidden">💖 Support Us</h2>
+            <p class="text-slate-400 mb-12 max-w-xl mx-auto lang-zh">如果这个工具帮助到了你，欢迎请作者喝一杯咖啡。你的支持是我们持续更新的动力！</p>
+            <p class="text-slate-400 mb-12 max-w-xl mx-auto lang-en hidden">If this tool has helped you, please buy the developer a coffee. Your support drives our continuous updates!</p>
+            
+            <div class="flex flex-wrap justify-center gap-10">
+                <!-- WeChat Pay -->
+                <div class="bg-white p-4 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300 glow-ring">
+                    <div class="w-64 h-64 bg-slate-200 rounded-lg overflow-hidden mb-4 relative">
+                        <img src="2cca3cb5a43b136044943e6cf8bdd682.jpg" alt="微信支付" class="object-cover w-full h-full">
+                    </div>
+                    <div class="flex items-center justify-center gap-2 text-green-600 font-bold text-lg">
+                        <i class="fab fa-weixin"></i> 
+                        <span class="lang-zh">微信支付</span>
+                        <span class="lang-en hidden">WeChat Pay</span>
+                    </div>
+                </div>
+
+                <!-- Alipay -->
+                <div class="bg-white p-4 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300 glow-ring">
+                    <div class="w-64 h-64 bg-slate-200 rounded-lg overflow-hidden mb-4 relative">
+                        <img src="bb0020c6b5f970505308902e4c3a6999.jpg" alt="支付宝" class="object-cover w-full h-full">
+                    </div>
+                    <div class="flex items-center justify-center gap-2 text-blue-500 font-bold text-lg">
+                        <i class="fab fa-alipay"></i> 
+                        <span class="lang-zh">支付宝</span>
+                        <span class="lang-en hidden">Alipay</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Us Section -->
+    <div id="contact" class="py-20 relative overflow-hidden">
+        <div class="max-w-4xl mx-auto px-4 text-center">
+            <h2 class="text-4xl font-bold mb-8 lang-zh">联系我们</h2>
+            <h2 class="text-4xl font-bold mb-8 lang-en hidden">Contact Us</h2>
+            <div class="glass-card p-8 rounded-2xl inline-block w-full max-w-2xl glow-ring">
+                <div class="flex flex-col items-center gap-6">
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
+                        <i class="fas fa-envelope text-white text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold lang-zh">邮箱联系</h3>
+                    <h3 class="text-2xl font-bold lang-en hidden">Email Us</h3>
+                    <a href="mailto:13910593150@139.com" class="text-xl text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 py-2 px-4 rounded-lg hover:bg-slate-800">
+                        <i class="fas fa-at"></i> 13910593150@139.com
+                    </a>
+                    <p class="text-slate-400 mt-4 lang-zh">
+                        有任何问题、建议或反馈？请随时通过邮箱联系我们，我们会尽快回复！
+                    </p>
+                    <p class="text-slate-400 mt-4 lang-en hidden">
+                        Have any questions, suggestions or feedback? Please feel free to contact us via email, we will reply as soon as possible!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-8 border-t border-slate-800 text-center text-slate-500">
+        <p class="lang-zh">&copy; 2026 全能文档查看器团队. All rights reserved.</p>
+        <p class="lang-en hidden">&copy; 2026 AllPurposeViewer Team. All rights reserved.</p>
+        <p class="mt-2 text-sm">
+            <span class="lang-zh">Made with ❤️ for developers.</span>
+            <span class="lang-en hidden">Made with ❤️ for developers.</span>
+            <br>
+            <span class="text-pink-400 text-xs font-medium">
+                <i class="fas fa-exclamation-circle"></i> 
+                <span class="lang-zh">Beta 测试版 - 功能可能存在调整</span>
+                <span class="lang-en hidden">Beta Version - Features may change</span>
+            </span>
+        </p>
+    </footer>
+
+    <script>
+        // 语言切换功能
+        const langToggle = document.getElementById('lang-toggle');
+        const langZhElements = document.querySelectorAll('.lang-zh');
+        const langEnElements = document.querySelectorAll('.lang-en');
+        let isZh = true;
+
+        langToggle.addEventListener('click', () => {
+            isZh = !isZh;
+            if (isZh) {
+                // 切换到中文
+                langZhElements.forEach(el => el.classList.remove('hidden'));
+                langEnElements.forEach(el => el.classList.add('hidden'));
+                document.documentElement.lang = 'zh-CN';
+                document.title = '全能文档查看器 - 全能·安全·高效 (Beta)';
+            } else {
+                // 切换到英文
+                langZhElements.forEach(el => el.classList.add('hidden'));
+                langEnElements.forEach(el => el.classList.remove('hidden'));
+                document.documentElement.lang = 'en';
+                document.title = 'AllPurposeViewer - All-in-One·Secure·Efficient (Beta)';
+            }
+        });
+
+        // 鼠标跟随光效
+        const bgLight = document.getElementById('bg-light');
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX / window.innerWidth * 100;
+            const y = e.clientY / window.innerHeight * 100;
+            bgLight.style.setProperty('--x', `${x}%`);
+            bgLight.style.setProperty('--y', `${y}%`);
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
