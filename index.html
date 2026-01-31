@@ -1,351 +1,759 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全能文档查看器 - 全能·安全·高效 (Beta)</title>
-    <meta name="description" content="新一代全能文档查看工具，集成AI助手，支持代码、PDF、视频等多种格式。(Beta版)">
+    <title>ASE - All-powerful, Safe, Efficient</title>
+    <meta name="description" content="下一代智能文档工作站。集成 MiniMind AI。">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans SC', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        primary: '#0ea5e9', // Sky 500
+                        secondary: '#6366f1', // Indigo 500
+                        dark: '#0f172a', // Slate 900
+                        darker: '#020617', // Slate 950
+                        surface: '#1e293b', // Slate 800
+                        accent: {
+                            cyan: '#06b6d4',
+                            blue: '#3b82f6'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-        .gradient-text {
-            background: linear-gradient(135deg, #60A5FA 0%, #A78BFA 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #020617; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Professional Card Style */
+        .feature-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.2s ease-out;
         }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
+        
+        .feature-card:hover {
+            background: rgba(30, 41, 59, 0.8);
+            border-color: rgba(56, 189, 248, 0.2);
+            transform: translateY(-2px);
         }
-        .glass-card:hover {
-            border-color: rgba(96, 165, 250, 0.5);
-            box-shadow: 0 0 25px rgba(96, 165, 250, 0.2);
+
+        /* Aurora Background */
+        .aurora-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+            background: #020617;
+            overflow: hidden;
         }
-        /* 高光特效 */
-        .glow-ring {
+        .aurora-blob {
+            position: absolute;
+            filter: blur(80px);
+            opacity: 0.4;
+            animation: blob-bounce 10s infinite ease-in-out;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #0ea5e9; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #6366f1; animation-delay: 2s; }
+        .blob-3 { top: 40%; left: 40%; width: 40vw; height: 40vw; background: #3b82f6; animation-delay: 4s; }
+
+        @keyframes blob-bounce {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -50px) scale(1.1); }
+            66% { transform: translate(-20px, 20px) scale(0.9); }
+        }
+
+        /* Glitch Effect */
+        .glitch {
             position: relative;
         }
-        .glow-ring::after {
-            content: '';
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 110%;
-            height: 110%;
-            border-radius: inherit;
-            background: linear-gradient(135deg, #60A5FA, #A78BFA, transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease, transform 0.3s ease;
-            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
-        .glow-ring:hover::after {
-            opacity: 0.4;
-            transform: translate(-50%, -50%) scale(1.05);
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 #0ea5e9;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
         }
-        /* 背景光效动画 */
-        .bg-light-animate {
-            background: radial-gradient(circle at var(--x) var(--y), rgba(96, 165, 250, 0.15), transparent 70%);
-            animation: light-pulse 8s infinite alternate;
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 #6366f1;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
         }
-        @keyframes light-pulse {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
+        @keyframes glitch-anim {
+            0% { clip: rect(31px, 9999px, 94px, 0); transform: skew(0.85deg); }
+            5% { clip: rect(70px, 9999px, 71px, 0); transform: skew(0.85deg); }
+            10% { clip: rect(29px, 9999px, 83px, 0); transform: skew(0.85deg); }
+            15% { clip: rect(10px, 9999px, 90px, 0); transform: skew(0.85deg); }
+            20% { clip: rect(1px, 9999px, 2px, 0); transform: skew(0.85deg); }
+            100% { clip: rect(65px, 9999px, 100px, 0); transform: skew(0.85deg); }
         }
-        /* Beta标签样式 */
-        .beta-badge {
-            background: linear-gradient(135deg, #F472B6, #EC4899);
-            transform: rotate(-10deg);
-            animation: float 3s ease-in-out infinite;
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); transform: skew(0.85deg); }
+            100% { clip: rect(31px, 9999px, 94px, 0); transform: skew(0.85deg); }
         }
-        @keyframes float {
-            0%, 100% { transform: rotate(-10deg) translateY(0); }
-            50% { transform: rotate(-10deg) translateY(-5px); }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            animation: scanline-move 0.2s linear infinite; 
+            opacity: 0.3;
         }
-        /* 按钮高光 */
-        .btn-glow:hover {
-            box-shadow: 0 0 20px rgba(96, 165, 250, 0.4);
+        @keyframes scanline-move {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
+        }
+
+        /* Grid Background */
+        .bg-grid {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+        }
+
+        /* 3D Perspective */
+        .perspective-container {
+            perspective: 2000px;
+        }
+        .hero-mockup {
+            transform: rotateX(20deg) scale(0.9);
+            transform-style: preserve-3d;
+            box-shadow: 0 50px 100px -20px rgba(0,0,0,0.5);
+            transition: transform 0.5s ease-out;
+        }
+        .hero-mockup:hover {
+            transform: rotateX(5deg) scale(0.95);
         }
     </style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen overflow-x-hidden">
-    <!-- 背景光效容器 -->
-    <div class="fixed inset-0 bg-light-animate -z-10" id="bg-light"></div>
+<body class="bg-darker text-slate-300 font-sans antialiased overflow-x-hidden relative">
+    <!-- Scanlines Overlay -->
+    <div class="scanlines"></div>
 
-    <!-- Navbar -->
-    <nav class="fixed w-full z-50 bg-slate-900/90 backdrop-blur-sm border-b border-slate-800">
+    <!-- Language State -->
+    <script>
+        const i18n = {
+            'zh-CN': {
+                nav_features: "核心功能",
+                nav_tech: "技术架构",
+                nav_donate: "支持我们",
+                hero_badge: "NEW: 搭载 MiniMind 智能核心",
+                hero_title_1: "全能·安全·高效",
+                hero_title_2: "ASE 智能查看器",
+                hero_desc: "专为专业人士打造。原生支持 PDF, Office, 视频, 代码等 50+ 种格式。内置 MiniMind 本地大模型，支持 GPU 硬件加速。",
+                btn_download: "立即下载",
+                btn_download_lite: "轻量极速版",
+                btn_download_full: "重量完整版",
+                btn_learn: "了解更多",
+                feature_safety: "企业级安全",
+                feature_speed: "GPU 硬件加速",
+                feature_free: "免费公测版",
+                code_comment_1: "# 初始化 ASE 核心",
+                code_comment_2: "# 准备启动...",
+                ai_card_title: "MiniMind AI",
+                ai_card_text: "代码分析完成：检测到 GPU 硬件环境，已自动开启加速模式。",
+                features_title: "全能 · 甚至更强",
+                features_desc: "打破软件边界，将文档阅读、代码编辑、多媒体播放与 AI 辅助完美融合。",
+                f1_title: "MiniMind2 本地大脑",
+                f1_desc: "无需上传文件，本地运行的 AI 模型。支持长文档摘要、代码纠错、多语言翻译。",
+                f2_title: "全格式通用解析",
+                f2_desc: "内置 PDF 渲染引擎、Office 文档转换器。一个软件，打开所有文件。",
+                f3_title: "极速渲染引擎",
+                f3_desc: "专有的高吞吐量异步渲染架构。0.8ms 延迟，告别卡顿。",
+                f4_title: "开发者工具箱",
+                f4_desc: "集成了局域网快传、音频分离、OCR 等实用工具。",
+                f5_title: "沉浸式暗黑模式",
+                f5_desc: "精心调校的 DarkWPS 风格界面，保护视力。",
+                f6_title: "Lazy Loading 技术",
+                f6_desc: "无限滚动列表与虚拟化视图技术，内存占用极低。",
+                tech_speed: "渲染延迟",
+                tech_format: "支持格式",
+                tech_local: "本地离线",
+                tech_size: "核心体积",
+                tech_title: "专为性能而生",
+                donate_title: "支持 ASE 发展",
+                donate_desc: "ASE 是一款商业级文档工作站（非开源）。目前 Beta 版本限时免费。您的捐赠将帮助我们持续优化产品。",
+                donate_wechat: "微信支付",
+                donate_alipay: "支付宝",
+                footer_made: "Made with ❤️ by WangHutou.",
+                beta_notice: "由于此次上线为 beta测试版，其功能和效果不完全代表正式版，如有问题，请向邮箱：13910593150@139.com反馈"
+            },
+            'en-US': {
+                nav_features: "Features",
+                nav_tech: "Tech Specs",
+                nav_donate: "Donate",
+                hero_badge: "NEW: Powered by MiniMind AI",
+                hero_title_1: "All-powerful · Safe · Efficient",
+                hero_title_2: "ASE Viewer",
+                hero_desc: "Built for professionals. Native support for PDF, Office, Video, Code & 50+ formats. Powered by MiniMind Local AI & GPU Acceleration.",
+                btn_download: "Download Now",
+                btn_download_lite: "Lite Speed",
+                btn_download_full: "Full Heavy",
+                btn_learn: "Learn More",
+                feature_safety: "Enterprise Safety",
+                feature_speed: "GPU Acceleration",
+                feature_free: "Free Beta",
+                code_comment_1: "# Initialize ASE Core",
+                code_comment_2: "# Ready to launch...",
+                ai_card_title: "MiniMind AI",
+                ai_card_text: "Analysis Complete: GPU hardware detected. Acceleration mode enabled.",
+                features_title: "All-in-One Powerhouse",
+                features_desc: "Breaking boundaries between document reading, code editing, and multimedia.",
+                f1_title: "MiniMind2 Local Brain",
+                f1_desc: "No cloud upload. Local AI model for summary, code fix, and translation.",
+                f2_title: "Universal Parsing",
+                f2_desc: "Built-in PDF engine, Office converter. One app for all files.",
+                f3_title: "High-Speed Rendering",
+                f3_desc: "Proprietary high-throughput async architecture. 0.8ms latency.",
+                f4_title: "Developer Toolkit",
+                f4_desc: "LAN Transfer, Audio Separation, OCR, JSON formatting included.",
+                f5_title: "Immersive Dark Mode",
+                f5_desc: "DarkWPS style interface for eye protection.",
+                f6_title: "Lazy Loading Tech",
+                f6_desc: "Infinite scroll & virtualization. Low memory usage.",
+                tech_speed: "Latency",
+                tech_format: "Formats",
+                tech_local: "Offline",
+                tech_size: "Core Size",
+                tech_title: "Built for Performance",
+                donate_title: "Support ASE",
+                donate_desc: "ASE is a commercial-grade workstation (Proprietary). The Beta version is free for a limited time. Your donation helps us optimize the product.",
+                donate_wechat: "WeChat Pay",
+                donate_alipay: "Alipay",
+                footer_made: "Made with ❤️ by WangHutou.",
+                beta_notice: "This is a Beta version. Features and performance may not represent the final release. For feedback, please contact: 13910593150@139.com"
+            }
+        };
+
+        let currentLang = 'zh-CN';
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh-CN' ? 'en-US' : 'zh-CN';
+            updateContent();
+            document.getElementById('lang-btn').innerText = currentLang === 'zh-CN' ? 'EN' : '中';
+        }
+
+        function updateContent() {
+            const t = i18n[currentLang];
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (t[key]) {
+                    el.innerText = t[key];
+                }
+            });
+        }
+    </script>
+
+    <!-- Background Effects -->
+    <div class="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="aurora-blob blob-3"></div>
+        <div class="absolute inset-0 bg-grid w-full h-full"></div>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass border-b-0" id="navbar">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-16">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                        <i class="fas fa-layer-group text-white text-sm"></i>
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <div class="flex items-center gap-3 group cursor-pointer">
+                    <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                        <i class="fas fa-cube text-white text-lg"></i>
                     </div>
-                    <span class="font-bold text-xl tracking-tight">
-                        全能文档查看器
-                        <span class="beta-badge text-xs font-bold px-2 py-1 rounded-full ml-2 text-white">BETA</span>
-                    </span>
+                    <div class="flex flex-col">
+                        <span class="font-bold text-xl text-white tracking-tight leading-none">ASE</span>
+                        <span class="text-[10px] text-slate-400 font-mono tracking-widest uppercase mt-1">Professional</span>
+                    </div>
                 </div>
-                <div class="hidden md:flex items-center space-x-8">
-                    <a href="#features" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">功能特性</a>
-                    <a href="#download" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">下载</a>
-                    <a href="#donate" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">支持我们</a>
-                    <a href="#contact" class="hover:text-blue-400 transition-colors px-3 py-2 rounded-md text-sm font-medium nav-link">联系我们</a>
-                    <!-- 语言切换按钮 -->
-                    <button id="lang-toggle" class="px-3 py-1 rounded-md bg-slate-800 hover:bg-slate-700 transition-colors text-sm border border-slate-700">
-                        <span class="lang-zh">切换英文</span>
-                        <span class="lang-en hidden">Switch to CN</span>
-                    </button>
+
+                <!-- Desktop Menu -->
+                <div class="hidden md:flex items-center gap-8">
+                    <a href="#features" class="text-sm font-medium text-slate-400 hover:text-white transition-colors" data-i18n="nav_features">核心功能</a>
+                    <a href="#tech" class="text-sm font-medium text-slate-400 hover:text-white transition-colors" data-i18n="nav_tech">技术架构</a>
+                    <a href="#donate" class="text-sm font-medium text-slate-400 hover:text-white transition-colors" data-i18n="nav_donate">支持我们</a>
+                    
+                    <!-- Language Toggle -->
+                    <button id="lang-btn" onclick="toggleLang()" class="w-8 h-8 rounded-full border border-slate-700 text-xs text-slate-400 hover:border-primary hover:text-primary transition-colors">EN</button>
+                    
+                    <a href="#download" class="px-5 py-2.5 rounded-lg bg-primary hover:bg-sky-600 text-white font-medium transition-all shadow-lg shadow-blue-500/25 flex items-center gap-2">
+                        <i class="fab fa-windows"></i>
+                        <span data-i18n="btn_download">下载 Beta 版</span>
+                    </a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <div class="relative pt-32 pb-20 sm:pt-40 sm:pb-24 overflow-hidden">
-        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10">
-            <h1 class="text-5xl sm:text-7xl font-extrabold tracking-tight mb-8">
-                <span class="block lang-zh">重新定义</span>
-                <span class="block lang-en hidden">Redefine</span>
-                <span class="block gradient-text mt-2 lang-zh">文档阅读体验</span>
-                <span class="block gradient-text mt-2 lang-en hidden">Document Reading Experience</span>
+    <section id="download" class="relative pt-32 pb-20 lg:pt-48 lg:pb-0 overflow-visible">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex flex-col items-center text-center">
+            
+            <!-- Badge -->
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/50 border border-slate-700/50 text-sky-400 text-sm font-medium mb-8 backdrop-blur-sm" data-aos="fade-down">
+                <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+                <span data-i18n="hero_badge">NEW: 搭载 MiniMind 智能核心</span>
+            </div>
+
+            <!-- Title -->
+            <h1 class="text-5xl lg:text-8xl font-bold tracking-tight text-white mb-8 leading-tight" data-aos="fade-up" data-aos-delay="100">
+                <span class="block text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400" data-i18n="hero_title_1">全能·安全·高效</span>
+                <span class="block text-sky-500 mt-2 glitch" data-text="ASE 智能查看器" data-i18n="hero_title_2">ASE 智能查看器</span>
             </h1>
-            <p class="mt-4 max-w-2xl mx-auto text-xl text-slate-400">
-                <span class="lang-zh">集成 MiniMind2 本地 AI 助手，支持 50+ 种文件格式。<br></span>
-                <span class="lang-en hidden">Integrated with MiniMind2 local AI assistant, supports 50+ file formats.<br></span>
-                <span class="text-blue-400 lang-zh">全能</span>
-                <span class="text-blue-400 lang-en hidden">All-in-One</span>
-                · <span class="text-green-400 lang-zh">安全</span>
-                <span class="text-green-400 lang-en hidden">Secure</span>
-                · <span class="text-purple-400 lang-zh">高效</span>
-                <span class="text-purple-400 lang-en hidden">Efficient</span>
-                <span class="block text-sm mt-2 text-pink-400 font-medium">
-                    <i class="fas fa-exclamation-circle"></i> 
-                    <span class="lang-zh">当前为 Beta 测试版，欢迎反馈问题</span>
-                    <span class="lang-en hidden">Beta Version - Feedback Welcome</span>
-                </span>
+
+            <!-- Description -->
+            <p class="text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto" data-aos="fade-up" data-aos-delay="200" data-i18n="hero_desc">
+                专为专业人士打造。原生支持 PDF, Office, 视频, 代码等 50+ 种格式。内置 MiniMind 本地大模型，支持 GPU 硬件加速。
             </p>
-            <div class="mt-10 flex justify-center gap-4 flex-wrap">
-                <a href="#download" class="px-8 py-4 rounded-full bg-blue-600 hover:bg-blue-700 transition-all transform hover:scale-105 font-bold shadow-lg shadow-blue-500/30 flex items-center gap-2 btn-glow glow-ring">
-                    <i class="fab fa-windows"></i> 
-                    <span class="lang-zh">免费下载 v1.0</span>
-                    <span class="lang-en hidden">Free Download v1.0</span>
+
+            <!-- Buttons -->
+            <div class="flex flex-col sm:flex-row items-center gap-6 mb-20" data-aos="fade-up" data-aos-delay="300">
+                <a href="#download-full" class="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-400 text-white font-bold transition-all shadow-lg shadow-sky-500/25 flex items-center gap-3 hover:scale-105">
+                    <i class="fas fa-cube text-lg"></i>
+                    <span data-i18n="btn_download_full">重量完整版</span>
                 </a>
-                <a href="https://github.com/wanghutou/AllPurposeViewer" target="_blank" class="px-8 py-4 rounded-full bg-slate-800 hover:bg-slate-700 transition-all border border-slate-700 font-bold flex items-center gap-2 btn-glow">
-                    <i class="fab fa-github"></i> GitHub
+                <a href="#download-lite" class="px-8 py-4 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold border border-slate-700 transition-all flex items-center gap-3 hover:scale-105">
+                    <i class="fas fa-bolt text-lg"></i>
+                    <span data-i18n="btn_download_lite">轻量极速版</span>
                 </a>
             </div>
+
+            <!-- 3D Mockup Visual -->
+            <div class="perspective-container w-full max-w-5xl mx-auto relative group" data-aos="fade-up" data-aos-delay="400">
+                <!-- Glow Effect -->
+                <div class="absolute inset-0 bg-sky-500/20 blur-3xl -z-10 rounded-full opacity-30 group-hover:opacity-50 transition-opacity duration-700"></div>
+                
+                <!-- The Interface -->
+                <div class="hero-mockup bg-slate-900 border border-slate-700/50 rounded-xl overflow-hidden shadow-2xl">
+                    <!-- Window Controls -->
+                    <div class="h-12 bg-slate-800/50 border-b border-slate-700/50 flex items-center px-6 gap-2 backdrop-blur-md">
+                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                        <div class="w-3 h-3 rounded-full bg-emerald-500/80"></div>
+                        <div class="ml-4 px-3 py-1 rounded-md bg-slate-900/50 text-xs text-slate-500 font-mono flex-1 text-center border border-slate-800">
+                            ase_core.py — ASE Professional
+                        </div>
+                    </div>
+                    
+                    <!-- Content Area -->
+                    <div class="p-8 font-mono text-sm md:text-base grid grid-cols-1 md:grid-cols-2 gap-12 text-left bg-slate-900/90 backdrop-blur-xl">
+                        <!-- Code Editor -->
+                        <div class="space-y-4">
+                            <div class="flex gap-4 items-center opacity-50">
+                                <span class="text-slate-600 w-6 text-right">1</span>
+                                <span class="text-slate-500 italic" data-i18n="code_comment_1"># 初始化 ASE 核心</span>
+                            </div>
+                            <div class="flex gap-4 items-center">
+                                <span class="text-slate-600 w-6 text-right">2</span>
+                                <span><span class="text-purple-400">import</span> <span class="text-sky-400">ase_core</span> <span class="text-purple-400">as</span> <span class="text-white">viewer</span></span>
+                            </div>
+                            <div class="flex gap-4 items-center">
+                                <span class="text-slate-600 w-6 text-right">3</span>
+                                <span><span class="text-purple-400">from</span> <span class="text-sky-400">ase.ai</span> <span class="text-purple-400">import</span> <span class="text-white">MiniMind</span></span>
+                            </div>
+                            <div class="flex gap-4 items-center opacity-50">
+                                <span class="text-slate-600 w-6 text-right">4</span>
+                                <span class="text-slate-500 italic" data-i18n="code_comment_2"># 准备启动...</span>
+                            </div>
+                            <div class="flex gap-4 items-center border-l-2 border-sky-500 pl-4 bg-sky-500/5 -ml-4 py-1">
+                                <span class="text-slate-600 w-6 text-right">5</span>
+                                <span><span class="text-sky-400">viewer</span>.<span class="text-emerald-400">launch</span>(<span class="text-orange-300">mode</span>=<span class="text-emerald-200">"turbo"</span>)</span>
+                            </div>
+                        </div>
+                        
+                        <!-- AI Analysis Panel -->
+                        <div class="relative">
+                            <div class="absolute -inset-1 bg-gradient-to-r from-sky-500 to-indigo-500 rounded-lg opacity-20 blur"></div>
+                            <div class="relative bg-slate-800 p-6 rounded-lg border border-slate-700 h-full flex flex-col justify-center">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center animate-pulse">
+                                        <i class="fas fa-robot text-white text-xs"></i>
+                                    </div>
+                                    <h4 class="text-white font-bold text-sm" data-i18n="ai_card_title">MiniMind AI</h4>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="h-1.5 bg-slate-700 rounded-full w-3/4"></div>
+                                    <div class="h-1.5 bg-slate-700 rounded-full w-full"></div>
+                                    <div class="h-1.5 bg-slate-700 rounded-full w-5/6"></div>
+                                </div>
+                                <div class="mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-xs">
+                                    <i class="fas fa-check-circle mr-2"></i>
+                                    <span data-i18n="ai_card_text">代码分析完成：检测到 GPU 硬件环境，已自动开启加速模式。</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-        
-        <!-- Background Elements -->
-        <div class="absolute top-0 left-1/2 w-full -translate-x-1/2 h-full z-0 pointer-events-none">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 1s;"></div>
-            <div class="absolute top-1/2 left-1/4 w-64 h-64 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
-        </div>
-    </div>
+    </section>
 
     <!-- Features Grid -->
-    <div id="features" class="py-20 bg-slate-800/50">
+    <section id="features" class="py-24 relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl font-bold lang-zh">核心功能</h2>
-                <h2 class="text-3xl font-bold lang-en hidden">Core Features</h2>
-                <p class="mt-4 text-slate-400 lang-zh">专为开发者和极客打造的终极工具</p>
-                <p class="mt-4 text-slate-400 lang-en hidden">The ultimate tool for developers and geeks</p>
+            <div class="text-center mb-16" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-white mb-4" data-i18n="features_title">重新定义查看器</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto" data-i18n="features_desc">不仅仅是查看，更是生产力工具。集成最前沿的 AI 技术，让每一次打开都充满惊喜。</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="glass-card p-8 rounded-2xl glow-ring">
-                    <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-blue-500/10">
-                        <i class="fas fa-brain text-blue-400 text-xl"></i>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Feature 1: AI (Big Card) -->
+                <div class="feature-card p-8 rounded-2xl group md:col-span-2 relative overflow-hidden" data-aos="fade-up" data-aos-delay="100">
+                    <div class="absolute right-0 top-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-sky-500/20 transition-colors duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="w-14 h-14 rounded-xl bg-sky-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <i class="fas fa-brain text-2xl text-sky-400"></i>
+                        </div>
+                        <h3 class="text-2xl font-bold text-white mb-4" data-i18n="f1_title">MiniMind2 本地大脑</h3>
+                        <p class="text-slate-400 leading-relaxed text-base max-w-lg" data-i18n="f1_desc">无需上传文件，本地运行的 AI 模型。支持长文档摘要、代码纠错、多语言翻译。</p>
+                        
+                        <!-- Visual Decoration -->
+                        <div class="mt-8 grid grid-cols-3 gap-3 opacity-50">
+                            <div class="h-2 bg-slate-700 rounded-full w-full"></div>
+                            <div class="h-2 bg-slate-700 rounded-full w-2/3"></div>
+                            <div class="h-2 bg-slate-700 rounded-full w-3/4"></div>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold mb-3 lang-zh">AI 智能助手</h3>
-                    <h3 class="text-xl font-bold mb-3 lang-en hidden">AI Intelligent Assistant</h3>
-                    <p class="text-slate-400 leading-relaxed lang-zh">内置 MiniMind2 本地大模型，无需联网即可分析代码、提取摘要，数据隐私绝对安全。</p>
-                    <p class="text-slate-400 leading-relaxed lang-en hidden">Built-in MiniMind2 local large model, analyze code and extract summaries without internet, ensuring absolute data privacy.</p>
                 </div>
-                <!-- Feature 2 -->
-                <div class="glass-card p-8 rounded-2xl glow-ring">
-                    <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-green-500/10">
-                        <i class="fas fa-file-code text-green-400 text-xl"></i>
+
+                <!-- Feature 2: Universal Parsing -->
+                <div class="feature-card p-8 rounded-2xl group" data-aos="fade-up" data-aos-delay="200">
+                    <div class="w-14 h-14 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-layer-group text-2xl text-indigo-400"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-3 lang-zh">全格式支持</h3>
-                    <h3 class="text-xl font-bold mb-3 lang-en hidden">Full Format Support</h3>
-                    <p class="text-slate-400 leading-relaxed lang-zh">原生支持 Python, Markdown, JSON, PDF, 视频以及二进制 Hex 查看，一站式解决所有需求。</p>
-                    <p class="text-slate-400 leading-relaxed lang-en hidden">Natively supports Python, Markdown, JSON, PDF, video and binary Hex viewing, one-stop solution for all needs.</p>
+                    <h3 class="text-xl font-bold text-white mb-3" data-i18n="f2_title">全格式通用解析</h3>
+                    <p class="text-slate-400 leading-relaxed text-sm" data-i18n="f2_desc">内置 PDF 渲染引擎、Office 文档转换器。一个软件，打开所有文件。</p>
                 </div>
-                <!-- Feature 3 -->
-                <div class="glass-card p-8 rounded-2xl glow-ring">
-                    <div class="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center mb-6 shadow-lg shadow-purple-500/10">
-                        <i class="fas fa-bolt text-purple-400 text-xl"></i>
+
+                <!-- Feature 3: Speed -->
+                <div class="feature-card p-8 rounded-2xl group" data-aos="fade-up" data-aos-delay="300">
+                    <div class="w-14 h-14 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-bolt text-2xl text-emerald-400"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-3 lang-zh">极致性能</h3>
-                    <h3 class="text-xl font-bold mb-3 lang-en hidden">Extreme Performance</h3>
-                    <p class="text-slate-400 leading-relaxed lang-zh">基于 PySide6 构建的现代化界面，启动速度快，资源占用低，支持暗黑模式和自定义快捷键。</p>
-                    <p class="text-slate-400 leading-relaxed lang-en hidden">Modern interface built on PySide6, fast startup, low resource usage, supports dark mode and custom shortcuts.</p>
+                    <h3 class="text-xl font-bold text-white mb-3" data-i18n="f3_title">极速渲染引擎</h3>
+                    <p class="text-slate-400 leading-relaxed text-sm" data-i18n="f3_desc">专有的高吞吐量异步渲染架构。0.8ms 延迟，告别卡顿。</p>
+                </div>
+
+                <!-- Feature 4: Dev Tools (Wide) -->
+                <div class="feature-card p-8 rounded-2xl group md:col-span-2" data-aos="fade-up" data-aos-delay="400">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                        <div>
+                            <div class="w-14 h-14 rounded-xl bg-amber-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                <i class="fas fa-tools text-2xl text-amber-400"></i>
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-3" data-i18n="f4_title">开发者工具箱</h3>
+                            <p class="text-slate-400 leading-relaxed text-sm max-w-md" data-i18n="f4_desc">集成了局域网快传、音频分离、OCR 等实用工具。</p>
+                        </div>
+                        <div class="flex gap-4 opacity-50 grayscale group-hover:grayscale-0 transition-all duration-500">
+                            <i class="fab fa-js text-3xl text-yellow-400"></i>
+                            <i class="fab fa-python text-3xl text-blue-400"></i>
+                            <i class="fab fa-rust text-3xl text-orange-400"></i>
+                            <i class="fas fa-database text-3xl text-slate-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature 5: Dark Mode -->
+                <div class="feature-card p-8 rounded-2xl group" data-aos="fade-up" data-aos-delay="500">
+                    <div class="w-14 h-14 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fas fa-moon text-2xl text-purple-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3" data-i18n="f5_title">沉浸式暗黑模式</h3>
+                    <p class="text-slate-400 leading-relaxed text-sm" data-i18n="f5_desc">精心调校的 DarkWPS 风格界面，保护视力。</p>
+                </div>
+
+                <!-- Feature 6: Lazy Loading -->
+                <div class="feature-card p-8 rounded-2xl group md:col-span-2" data-aos="fade-up" data-aos-delay="600">
+                    <div class="flex items-center gap-6">
+                        <div class="w-14 h-14 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                            <i class="fas fa-shipping-fast text-2xl text-green-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-2" data-i18n="f6_title">Lazy Loading 技术</h3>
+                            <p class="text-slate-400 leading-relaxed text-sm" data-i18n="f6_desc">无限滚动列表与虚拟化视图技术，内存占用极低。</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Download Section -->
-    <div id="download" class="py-20 relative overflow-hidden">
-        <div class="max-w-4xl mx-auto px-4 text-center">
-            <h2 class="text-4xl font-bold mb-8 lang-zh">准备好体验了吗？</h2>
-            <h2 class="text-4xl font-bold mb-8 lang-en hidden">Ready to Experience?</h2>
-            <div class="glass-card p-8 rounded-2xl inline-block w-full max-w-2xl glow-ring">
-                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
-                    <div class="text-left">
-                        <h3 class="text-2xl font-bold">AllPurposeViewer v1.0 
-                            <span class="beta-badge text-xs font-bold px-2 py-1 rounded-full ml-2 text-white">BETA</span>
-                        </h3>
-                        <p class="text-slate-400 mt-2 lang-zh">Windows 10/11 x64 | 包含完整 AI 模型</p>
-                        <p class="text-slate-400 mt-2 lang-en hidden">Windows 10/11 x64 | Includes full AI model</p>
+    <!-- Tech Specs -->
+    <section id="tech" class="py-24 relative bg-slate-900/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div data-aos="fade-right">
+                    <h2 class="text-3xl font-bold text-white mb-6" data-i18n="tech_title">硬核技术栈</h2>
+                    <p class="text-slate-400 mb-8 leading-relaxed" data-i18n="tech_desc">
+                        ASE 是 Python 生态的集大成者。基于纯 Python 构建，
+                        融合现代化 GUI 框架与本地 AI 引擎，兼顾开发效率与运行性能。
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-500/50 transition-colors">
+                            <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                                <i class="fab fa-python text-2xl text-yellow-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold" data-i18n="tech_1_title">Pure Python</h4>
+                                <p class="text-slate-400 text-sm" data-i18n="tech_1_desc">简洁优雅，极致灵动</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-500/50 transition-colors">
+                            <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                                <i class="fas fa-microchip text-2xl text-pink-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold" data-i18n="tech_2_title">Local AI</h4>
+                                <p class="text-slate-400 text-sm" data-i18n="tech_2_desc">本地模型，隐私安全</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 p-4 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-500/50 transition-colors">
+                            <div class="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                                <i class="fas fa-cubes text-2xl text-sky-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold" data-i18n="tech_3_title">Python Ecosystem</h4>
+                                <p class="text-slate-400 text-sm" data-i18n="tech_3_desc">海量库支持，无限扩展</p>
+                            </div>
+                        </div>
                     </div>
-                    <a href="https://github.com/wanghutou/AllPurposeViewer/releases/latest" class="px-8 py-4 bg-green-600 hover:bg-green-700 rounded-xl font-bold transition-all shadow-lg flex items-center gap-3 w-full md:w-auto justify-center btn-glow">
-                        <i class="fas fa-download"></i>
-                        <span class="lang-zh">前往下载页面</span>
-                        <span class="lang-en hidden">Go to Download Page</span>
-                    </a>
                 </div>
-                <div class="mt-6 pt-6 border-t border-slate-700 text-sm text-slate-500 flex flex-wrap justify-center gap-6 items-center">
-                    <span><i class="fas fa-check-circle text-green-500 mr-2"></i><span class="lang-zh">开源免费</span><span class="lang-en hidden">Open Source & Free</span></span>
-                    <span><i class="fas fa-shield-alt text-blue-500 mr-2"></i><span class="lang-zh">无广告无弹窗</span><span class="lang-en hidden">No Ads & Pop-ups</span></span>
-                    <span><i class="fas fa-rocket text-purple-500 mr-2"></i><span class="lang-zh">持续更新迭代</span><span class="lang-en hidden">Continuous Updates</span></span>
+                
+                <div class="relative" data-aos="fade-left">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-sky-500/10 to-indigo-500/10 rounded-2xl blur-2xl"></div>
+                    <div class="relative grid grid-cols-2 gap-4">
+                        <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-center aspect-square hover:border-sky-500/50 transition-colors">
+                            <span class="text-4xl font-bold text-white mb-2">50+</span>
+                            <span class="text-slate-400 text-sm" data-i18n="stat_formats">支持格式</span>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-center aspect-square hover:border-sky-500/50 transition-colors">
+                            <span class="text-4xl font-bold text-white mb-2">0.3s</span>
+                            <span class="text-slate-400 text-sm" data-i18n="stat_launch">启动时间</span>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-center aspect-square hover:border-sky-500/50 transition-colors">
+                            <span class="text-4xl font-bold text-white mb-2">4K</span>
+                            <span class="text-slate-400 text-sm" data-i18n="stat_resolution">完美支持</span>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-800 border border-slate-700 flex flex-col items-center justify-center text-center aspect-square hover:border-sky-500/50 transition-colors">
+                            <span class="text-4xl font-bold text-white mb-2">100%</span>
+                            <span class="text-slate-400 text-sm" data-i18n="stat_offline">本地离线</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Donate Section -->
-    <div id="donate" class="py-20 bg-slate-800/30">
-        <div class="max-w-4xl mx-auto px-4 text-center">
-            <h2 class="text-3xl font-bold mb-4 lang-zh">💖 感谢支持</h2>
-            <h2 class="text-3xl font-bold mb-4 lang-en hidden">💖 Support Us</h2>
-            <p class="text-slate-400 mb-12 max-w-xl mx-auto lang-zh">如果这个工具帮助到了你，欢迎请作者喝一杯咖啡。你的支持是我们持续更新的动力！</p>
-            <p class="text-slate-400 mb-12 max-w-xl mx-auto lang-en hidden">If this tool has helped you, please buy the developer a coffee. Your support drives our continuous updates!</p>
-            
-            <div class="flex flex-wrap justify-center gap-10">
+    <!-- Donation Section -->
+    <section id="donate" class="py-20 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16" data-aos="fade-up">
+                <h2 class="text-3xl lg:text-5xl font-bold text-white mb-4" data-i18n="donate_title">支持 ASE 发展</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto" data-i18n="donate_desc">ASE 是一款商业级文档工作站（非开源）。目前 Beta 版本限时免费。您的捐赠将帮助我们持续优化产品。</p>
+            </div>
+
+            <div class="flex flex-col md:flex-row justify-center gap-10" data-aos="fade-up" data-aos-delay="200">
                 <!-- WeChat Pay -->
-                <div class="bg-white p-4 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300 glow-ring">
-                    <div class="w-64 h-64 bg-slate-200 rounded-lg overflow-hidden mb-4 relative">
-                        <img src="2cca3cb5a43b136044943e6cf8bdd682.jpg" alt="微信支付" class="object-cover w-full h-full">
+                <div class="feature-card p-8 rounded-2xl flex flex-col items-center">
+                    <div class="w-64 h-64 bg-white rounded-xl p-2 mb-6">
+                        <img src="2cca3cb5a43b136044943e6cf8bdd682.jpg" alt="WeChat Pay" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex items-center justify-center gap-2 text-green-600 font-bold text-lg">
-                        <i class="fab fa-weixin"></i> 
-                        <span class="lang-zh">微信支付</span>
-                        <span class="lang-en hidden">WeChat Pay</span>
+                    <div class="flex items-center gap-3 text-emerald-500 font-bold text-xl">
+                        <i class="fab fa-weixin text-2xl"></i>
+                        <span data-i18n="donate_wechat">微信支付</span>
                     </div>
                 </div>
 
                 <!-- Alipay -->
-                <div class="bg-white p-4 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300 glow-ring">
-                    <div class="w-64 h-64 bg-slate-200 rounded-lg overflow-hidden mb-4 relative">
-                        <img src="bb0020c6b5f970505308902e4c3a6999.jpg" alt="支付宝" class="object-cover w-full h-full">
+                <div class="feature-card p-8 rounded-2xl flex flex-col items-center">
+                    <div class="w-64 h-64 bg-white rounded-xl p-2 mb-6">
+                        <img src="bb0020c6b5f970505308902e4c3a6999.jpg" alt="Alipay" class="w-full h-full object-contain">
                     </div>
-                    <div class="flex items-center justify-center gap-2 text-blue-500 font-bold text-lg">
-                        <i class="fab fa-alipay"></i> 
-                        <span class="lang-zh">支付宝</span>
-                        <span class="lang-en hidden">Alipay</span>
+                    <div class="flex items-center gap-3 text-sky-500 font-bold text-xl">
+                        <i class="fab fa-alipay text-2xl"></i>
+                        <span data-i18n="donate_alipay">支付宝</span>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
-    <!-- Contact Us Section -->
-    <div id="contact" class="py-20 relative overflow-hidden">
-        <div class="max-w-4xl mx-auto px-4 text-center">
-            <h2 class="text-4xl font-bold mb-8 lang-zh">联系我们</h2>
-            <h2 class="text-4xl font-bold mb-8 lang-en hidden">Contact Us</h2>
-            <div class="glass-card p-8 rounded-2xl inline-block w-full max-w-2xl glow-ring">
-                <div class="flex flex-col items-center gap-6">
-                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-                        <i class="fas fa-envelope text-white text-3xl"></i>
+    <!-- Beta Feedback Section -->
+    <section class="py-12 bg-slate-900/30 border-t border-slate-800/50">
+        <div class="max-w-4xl mx-auto px-4 text-center" data-aos="fade-up">
+            <div class="inline-block p-8 rounded-2xl bg-slate-950/80 border border-yellow-500/20 shadow-2xl shadow-yellow-500/5 relative overflow-hidden group hover:border-yellow-500/40 transition-colors backdrop-blur-sm">
+                <!-- Warning Strip -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-500/50 to-transparent"></div>
+                
+                <h3 class="text-xl font-bold text-yellow-500 mb-4 flex items-center justify-center gap-2 font-mono">
+                    <i class="fas fa-bug animate-pulse"></i>
+                    <span>BETA VERSION NOTICE</span>
+                </h3>
+                
+                <p class="text-slate-400 leading-relaxed mb-6 text-lg" data-i18n="beta_notice">
+                    由于此次上线为 beta测试版，其功能和效果不完全代表正式版，如有问题，请向邮箱：13910593150@139.com反馈
+                </p>
+
+                <!-- MiniMind Issue & Compensation -->
+                <div class="mb-10 text-left max-w-3xl mx-auto">
+                    <!-- Status Bar -->
+                    <div class="flex items-center gap-3 mb-4 px-2">
+                        <span class="relative flex h-3 w-3">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                        </span>
+                        <p class="text-slate-400 text-sm font-medium">System Status: <span class="text-red-400">MiniMind API Unstable</span></p>
                     </div>
-                    <h3 class="text-2xl font-bold lang-zh">邮箱联系</h3>
-                    <h3 class="text-2xl font-bold lang-en hidden">Email Us</h3>
-                    <a href="mailto:13910593150@139.com" class="text-xl text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 py-2 px-4 rounded-lg hover:bg-slate-800">
-                        <i class="fas fa-at"></i> 13910593150@139.com
+
+                    <!-- Compensation Card -->
+                    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 shadow-2xl group">
+                        <!-- Decorative Elements -->
+                        <div class="absolute top-0 right-0 p-4 opacity-10">
+                            <i class="fas fa-microchip text-9xl text-white"></i>
+                        </div>
+                        <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl"></div>
+                        
+                        <!-- Card Content -->
+                        <div class="relative p-6 md:p-8">
+                            <div class="flex items-center justify-between mb-6">
+                                <div>
+                                    <h4 class="text-xl font-bold text-white tracking-tight">Developer Compensation Pass</h4>
+                                    <p class="text-slate-500 text-xs uppercase tracking-widest mt-1">Free Tier Upgrade • Valid Immediately</p>
+                                </div>
+                                <div class="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
+                                    ACTIVE
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <!-- Endpoint -->
+                                <div class="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-sky-500/30 transition-colors">
+                                    <div class="text-slate-500 text-xs mb-1 flex items-center gap-2">
+                                        <i class="fas fa-server"></i> API Endpoint
+                                    </div>
+                                    <div class="text-sky-400 font-mono text-xs break-all select-all">https://haxiaiplus.cn/v1/chat/completions</div>
+                                </div>
+                                <!-- Model -->
+                                <div class="p-3 rounded-lg bg-slate-800/50 border border-slate-700/50 hover:border-purple-500/30 transition-colors">
+                                    <div class="text-slate-500 text-xs mb-1 flex items-center gap-2">
+                                        <i class="fas fa-robot"></i> Model Name
+                                    </div>
+                                    <div class="text-purple-400 font-mono text-sm font-bold select-all">mai-ds-r1</div>
+                                </div>
+                            </div>
+
+                            <!-- API Key Zone -->
+                            <div class="relative">
+                                <div class="text-slate-500 text-xs mb-2 flex items-center gap-2">
+                                    <i class="fas fa-key text-emerald-500"></i>
+                                    <span>Access Key</span>
+                                </div>
+                                <div class="flex items-center gap-0 bg-slate-950 rounded-xl border border-emerald-500/30 overflow-hidden shadow-lg shadow-emerald-500/5 group-hover:shadow-emerald-500/10 transition-shadow">
+                                    <code class="flex-1 p-4 font-mono text-emerald-400 text-sm md:text-base tracking-wide select-all truncate">sk-HhgftJllJiYlnmJkkbjvanjWYfsces3Am5TEAJwkrIC5HMH0</code>
+                                    <div class="bg-emerald-500/10 h-full self-stretch flex items-center px-4 border-l border-emerald-500/20 text-emerald-500 cursor-pointer hover:bg-emerald-500 hover:text-white transition-colors" title="Copy Key">
+                                        <i class="far fa-copy"></i>
+                                    </div>
+                                </div>
+                                <p class="text-slate-500 text-xs mt-2 text-right">* Auto-applied to local config if downloaded now</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4">
+                    <a href="mailto:13910593150@139.com" class="px-6 py-3 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 text-sm font-bold transition-all border border-yellow-500/20 flex items-center gap-2 group-hover:scale-105">
+                        <i class="fas fa-envelope-open-text"></i>
+                        <span>发送反馈 / Send Feedback</span>
                     </a>
-                    <p class="text-slate-400 mt-4 lang-zh">
-                        有任何问题、建议或反馈？请随时通过邮箱联系我们，我们会尽快回复！
-                    </p>
-                    <p class="text-slate-400 mt-4 lang-en hidden">
-                        Have any questions, suggestions or feedback? Please feel free to contact us via email, we will reply as soon as possible!
-                    </p>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Footer -->
-    <footer class="py-8 border-t border-slate-800 text-center text-slate-500">
-        <p class="lang-zh">&copy; 2026 全能文档查看器团队. All rights reserved.</p>
-        <p class="lang-en hidden">&copy; 2026 AllPurposeViewer Team. All rights reserved.</p>
-        <p class="mt-2 text-sm">
-            <span class="lang-zh">Made with ❤️ for developers.</span>
-            <span class="lang-en hidden">Made with ❤️ for developers.</span>
-            <br>
-            <span class="text-pink-400 text-xs font-medium">
-                <i class="fas fa-exclamation-circle"></i> 
-                <span class="lang-zh">Beta 测试版 - 功能可能存在调整</span>
-                <span class="lang-en hidden">Beta Version - Features may change</span>
-            </span>
-        </p>
+    <footer class="border-t border-slate-800 bg-darker py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="flex items-center justify-center gap-2 mb-4">
+                <i class="fas fa-cube text-blue-500"></i>
+                <span class="font-bold text-white text-lg">ASE</span>
+            </div>
+            <p class="text-slate-500 text-sm" data-i18n="footer_made">Made with ❤️ by WangHutou.</p>
+        </div>
     </footer>
 
+    <!-- AOS Script -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
-        // 语言切换功能
-        const langToggle = document.getElementById('lang-toggle');
-        const langZhElements = document.querySelectorAll('.lang-zh');
-        const langEnElements = document.querySelectorAll('.lang-en');
-        let isZh = true;
-
-        langToggle.addEventListener('click', () => {
-            isZh = !isZh;
-            if (isZh) {
-                // 切换到中文
-                langZhElements.forEach(el => el.classList.remove('hidden'));
-                langEnElements.forEach(el => el.classList.add('hidden'));
-                document.documentElement.lang = 'zh-CN';
-                document.title = '全能文档查看器 - 全能·安全·高效 (Beta)';
-            } else {
-                // 切换到英文
-                langZhElements.forEach(el => el.classList.add('hidden'));
-                langEnElements.forEach(el => el.classList.remove('hidden'));
-                document.documentElement.lang = 'en';
-                document.title = 'AllPurposeViewer - All-in-One·Secure·Efficient (Beta)';
-            }
+        AOS.init({
+            duration: 800,
+            once: true,
         });
 
-        // 鼠标跟随光效
-        const bgLight = document.getElementById('bg-light');
-        document.addEventListener('mousemove', (e) => {
-            const x = e.clientX / window.innerWidth * 100;
-            const y = e.clientY / window.innerHeight * 100;
-            bgLight.style.setProperty('--x', `${x}%`);
-            bgLight.style.setProperty('--y', `${y}%`);
-        });
+        // Particle System removed
 
-        // 平滑滚动
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                const targetElement = document.querySelector(targetId);
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
     </script>
 </body>
 </html>
