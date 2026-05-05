@@ -813,10 +813,14 @@ function handleClick(pos) {
 
 function handleDialogueClick(pos) {
     if (G.dialogueChoices.length === 0) return;
-    const py = CONFIG.CANVAS_HEIGHT - 145;
-    for (let i = 0; i < G.dialogueChoices.length; i++) {
-        const bx = 20, by = py + 20 + i * 45;
-        if (pos.x >= bx && pos.x <= bx + CONFIG.CANVAS_WIDTH - 40 && pos.y >= by && pos.y <= by + 38) {
+    const dialogueHeight = 150;
+    const dy = CONFIG.CANVAS_HEIGHT - dialogueHeight;
+    const choiceCount = Math.min(G.dialogueChoices.length, 3);
+    const choiceHeight = 36;
+    const choiceGap = (dialogueHeight - 60) / choiceCount;
+    for (let i = 0; i < choiceCount; i++) {
+        const bx = 20, by = dy + 55 + i * choiceGap;
+        if (pos.x >= bx && pos.x <= bx + CONFIG.CANVAS_WIDTH - 40 && pos.y >= by && pos.y <= by + choiceHeight) {
             G.selectChoice(i);
             return;
         }
@@ -927,25 +931,29 @@ function drawUI() {
 }
 
 function drawDialogueUI() {
-    const dy = CONFIG.CANVAS_HEIGHT - 160;
-    Draw.rect(0, dy, CONFIG.CANVAS_WIDTH, 160, 'rgba(0,0,0,0.92)');
-    Draw.rectStroke(0, dy, CONFIG.CANVAS_WIDTH, 160, '#5a4030', 3);
-    Draw.rectStroke(2, dy + 2, CONFIG.CANVAS_WIDTH - 4, 156, '#c8a840', 1);
+    const dialogueHeight = 150;
+    const dy = CONFIG.CANVAS_HEIGHT - dialogueHeight;
+    Draw.rect(0, dy, CONFIG.CANVAS_WIDTH, dialogueHeight, 'rgba(0,0,0,0.92)');
+    Draw.rectStroke(0, dy, CONFIG.CANVAS_WIDTH, dialogueHeight, '#5a4030', 3);
+    Draw.rectStroke(2, dy + 2, CONFIG.CANVAS_WIDTH - 4, dialogueHeight - 4, '#c8a840', 1);
     
     const sn = G.characters[G.dialogueSpeaker] ? G.characters[G.dialogueSpeaker].name : G.dialogueSpeaker;
-    Draw.text(sn, 16, dy + 20, '#c8a840', '11px "Press Start 2P", monospace');
+    Draw.text(sn, 16, dy + 18, '#c8a840', '11px "Press Start 2P", monospace');
     
     if (G.dialogueText) {
         const words = Utils.wrapText(G.dialogueText, CONFIG.CANVAS_WIDTH - 36);
-        for (let i = 0; i < Math.min(words.length, 3); i++) {
-            Draw.text(words[i], 16, dy + 42 + i * 14, '#f0ead8', '9px "Press Start 2P", monospace');
+        for (let i = 0; i < Math.min(words.length, 2); i++) {
+            Draw.text(words[i], 16, dy + 40 + i * 14, '#f0ead8', '9px "Press Start 2P", monospace');
         }
     }
     
     if (G.dialogueChoices.length > 0) {
-        for (let i = 0; i < G.dialogueChoices.length; i++) {
-            const bx = 20, by = dy + 85 + i * 45, c = G.dialogueChoices[i];
-            const isHovered = G.selectedChoice === i || (mouseX >= bx && mouseX <= bx + CONFIG.CANVAS_WIDTH - 40 && mouseY >= by && mouseY <= by + 38);
+        const choiceCount = Math.min(G.dialogueChoices.length, 3);
+        const choiceHeight = 36;
+        const choiceGap = (dialogueHeight - 60) / choiceCount;
+        for (let i = 0; i < choiceCount; i++) {
+            const bx = 20, by = dy + 55 + i * choiceGap, c = G.dialogueChoices[i];
+            const isHovered = G.selectedChoice === i || (mouseX >= bx && mouseX <= bx + CONFIG.CANVAS_WIDTH - 40 && mouseY >= by && mouseY <= by + choiceHeight);
             Draw.rect(bx, by, CONFIG.CANVAS_WIDTH - 40, 38, isHovered ? '#3a2a1a' : '#1a1008');
             Draw.rectStroke(bx, by, CONFIG.CANVAS_WIDTH - 40, 38, isHovered ? '#c8a840' : '#5a4030', 2);
             const arrow = G.selectedChoice === i ? '▶' : '○';
