@@ -2,15 +2,68 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0a">
 <title>梵高 - 第一章：吃土豆的人</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-#game-wrapper{position:relative}
-canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:3px solid #3a2820;box-shadow:0 0 40px rgba(180,120,40,0.2),0 0 80px rgba(180,100,30,0.1)}
-@media(max-width:660px){canvas{width:100vw;height:auto;border:none}}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { 
+    margin: 0; 
+    padding: 0; 
+    width: 100%; 
+    height: 100%; 
+    overflow: hidden; 
+    background: #1a1008; 
+}
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #0d0905 0%, #1a1008 50%, #150d06 100%);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+#game-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(180deg, #0d0905 0%, #1a1008 50%, #150d06 100%);
+    z-index: 9999;
+}
+canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: none;
+    box-shadow: 0 0 60px rgba(180, 120, 40, 0.15), 0 0 120px rgba(180, 100, 30, 0.08);
+}
+@media screen and (orientation: portrait) {
+    #game-wrapper {
+        transform: rotate(90deg);
+        transform-origin: center center;
+        width: 100vh;
+        height: 100vw;
+        margin-left: calc((100vw - 100vh) / -2);
+        margin-top: calc((100vh - 100vw) / -2);
+    }
+    canvas {
+        max-height: 100vw;
+        max-width: 100vh;
+    }
+}
+@media screen and (orientation: landscape) {
+    canvas {
+        max-width: 100vw;
+        max-height: 100vh;
+    }
+}
 </style>
 </head>
 <body><div id="game-wrapper"><canvas id="gc"></canvas></div>
@@ -30,9 +83,10 @@ const CONFIG = {
 };
 
 const COLORS = {
-    WALL: '#3d2817',
-    WALL_PATTERN: '#422e1b',
-    FLOOR: '#2a1808',
+    WALL_TOP: '#4a3020',
+    WALL_BOTTOM: '#3d2817',
+    FLOOR_DARK: '#1a0f08',
+    FLOOR_LIGHT: '#2a1808',
     WOOD: '#5a3a1a',
     GOLD: '#c8a040',
     PAPER: '#f5e6c8'
@@ -62,6 +116,14 @@ const Utils = {
     },
     lerp(a, b, t) {
         return a + (b - a) * t;
+    },
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
     }
 };
 
@@ -85,6 +147,22 @@ const Draw = {
         this.ctx.font = font;
         this.ctx.textAlign = textAlign;
         this.ctx.fillText(text, x, y);
+    },
+    gradientRect(x, y, w, h, colorTop, colorBottom) {
+        if (!this.ctx) return;
+        const gradient = this.ctx.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, colorTop);
+        gradient.addColorStop(1, colorBottom);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(x, y, w, h);
+    },
+    gradientRadial(cx, cy, r, colorCenter, colorEdge) {
+        if (!this.ctx) return;
+        const gradient = this.ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        gradient.addColorStop(0, colorCenter);
+        gradient.addColorStop(1, colorEdge);
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
     }
 };
 
@@ -319,105 +397,125 @@ const INTERACTABLES = {
 // 场景与人物绘制
 ////////////////////////////////////////////////////////////////////////////
 function drawScene() {
-    Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, 360, COLORS.WALL);
+    Draw.gradientRect(0, 0, CONFIG.CANVAS_WIDTH, 360, '#4a3020', '#3d2817');
     
-    Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, 8, '#2a1808');
-    Draw.rect(0, 6, CONFIG.CANVAS_WIDTH, 3, '#1a0800');
-    Draw.rect(100, 0, 6, 10, '#3a2810');
-    Draw.rect(300, 0, 6, 10, '#3a2810');
-    Draw.rect(500, 0, 6, 10, '#3a2810');
+    Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, 12, '#251508');
+    Draw.rect(0, 8, CONFIG.CANVAS_WIDTH, 4, '#150a00');
+    Draw.rect(95, 0, 10, 12, '#3a2810');
+    Draw.rect(295, 0, 10, 12, '#3a2810');
+    Draw.rect(495, 0, 10, 12, '#3a2810');
     
-    Draw.rect(0, 360, CONFIG.CANVAS_WIDTH, 120, COLORS.FLOOR);
+    Draw.gradientRect(0, 360, CONFIG.CANVAS_WIDTH, 120, '#251508', '#150a00');
     const vp = CONFIG.CANVAS_WIDTH / 2 + 40;
-    for (let i = 0; i < 20; i++) {
-        const t = i / 20;
+    for (let i = 0; i < 25; i++) {
+        const t = i / 25;
         const y0 = 360 + t * 120;
-        Draw.rect(vp - CONFIG.CANVAS_WIDTH * (1 - t * 0.6) / 2, y0, CONFIG.CANVAS_WIDTH * (1 - t * 0.6), 2, '#301c0a');
+        const alpha = 0.4 + t * 0.6;
+        Draw.rect(vp - CONFIG.CANVAS_WIDTH * (1 - t * 0.5) / 2, y0, CONFIG.CANVAS_WIDTH * (1 - t * 0.5), 2, `rgba(45, 28, 10, ${alpha})`);
     }
-    for (let i = 0; i < 12; i++) {
-        const t = i / 12;
+    for (let i = 0; i < 15; i++) {
+        const t = i / 15;
         const y = 360 + t * 120;
-        const x0 = vp - CONFIG.CANVAS_WIDTH * 0.6 * (1 - t);
-        const x1 = vp + CONFIG.CANVAS_WIDTH * 0.6 * (1 - t);
-        Draw.rect(x0, y, 3, 480 - y, '#2c1a09');
-        Draw.rect(x1, y, 3, 480 - y, '#2c1a09');
+        const x0 = vp - CONFIG.CANVAS_WIDTH * 0.5 * (1 - t);
+        const x1 = vp + CONFIG.CANVAS_WIDTH * 0.5 * (1 - t);
+        Draw.rect(x0, y, 4, 480 - y, 'rgba(40, 26, 9, 0.6)');
+        Draw.rect(x1, y, 4, 480 - y, 'rgba(40, 26, 9, 0.6)');
     }
     
-    Draw.rect(145, 45, 80, 100, '#4a3020');
-    Draw.rectStroke(145, 45, 80, 100, '#5a4030', 5);
-    Draw.rect(150, 50, 70, 90, '#0a0d1a');
+    Draw.rect(145, 45, 80, 100, '#5a3a20');
+    Draw.rectStroke(145, 45, 80, 100, '#6b4a28', 6);
+    Draw.gradientRect(150, 50, 70, 90, '#0d1020', '#080a15');
+    
+    const moonGlow = 0.15 + Math.sin(Date.now() / 2000) * 0.05;
+    Draw.gradientRadial(198, 59, 25, `rgba(232, 216, 144, ${moonGlow})`, 'rgba(232, 216, 144, 0)');
     Draw.rect(190, 52, 16, 14, '#e8d890');
     Draw.rect(192, 54, 12, 12, '#f0e8b0');
-    Draw.rect(184, 50, 8, 8, '#0a0d1a');
-    Draw.rect(160, 58, 2, 2, '#fff');
-    Draw.rect(205, 72, 2, 2, '#fff');
+    Draw.rect(184, 50, 8, 8, '#0d1020');
+    
+    const twinkle = Math.sin(Date.now() / 500) > 0;
+    Draw.rect(160, 58, 2, 2, twinkle ? '#ffffff' : '#0d1020');
+    Draw.rect(205, 72, 2, 2, !twinkle ? '#ffffff' : '#0d1020');
     Draw.rect(168, 98, 2, 2, '#fff');
     Draw.rect(202, 108, 2, 2, '#fff');
     Draw.rect(180, 65, 1, 1, '#fff');
     Draw.rect(156, 115, 2, 2, '#fff');
-    Draw.rect(183, 50, 4, 90, '#4a3020');
-    Draw.rect(150, 92, 70, 4, '#4a3020');
-    Draw.rect(145, 136, 80, 8, '#5a3a20');
-    Draw.rect(146, 137, 78, 4, '#6a4a2a');
     
-    Draw.rect(522, 102, 96, 266, '#3a2210');
-    Draw.rectStroke(522, 102, 96, 266, '#5a3820', 6);
-    Draw.rect(530, 110, 80, 250, '#2a1508');
-    Draw.rect(548, 110, 4, 250, '#301c0a');
-    Draw.rect(568, 110, 4, 250, '#301c0a');
-    Draw.rect(588, 110, 4, 250, '#301c0a');
-    Draw.rect(586, 235, 10, 14, '#c8a040');
-    Draw.rect(587, 237, 8, 4, '#e0c060');
-    Draw.rect(586, 249, 10, 2, '#a08020');
+    Draw.rect(183, 50, 4, 90, '#5a3a20');
+    Draw.rect(150, 92, 70, 4, '#5a3a20');
+    Draw.rect(145, 136, 80, 10, '#6a4a2a');
+    Draw.rect(146, 138, 78, 4, '#7a5a3a');
     
-    Draw.rect(430, 50, 40, 30, '#3a2010');
-    Draw.rectStroke(430, 50, 40, 30, '#5a3020', 3);
-    Draw.rect(433, 53, 34, 24, '#4a3018');
-    Draw.rect(436, 56, 8, 10, '#5a4020');
-    Draw.rect(448, 56, 8, 10, '#3a2010');
-    Draw.rect(436, 70, 5, 4, '#6a5030');
+    Draw.rect(522, 102, 96, 266, '#4a2812');
+    Draw.rectStroke(522, 102, 96, 266, '#6a3818', 8);
+    Draw.gradientRect(530, 110, 80, 250, '#1f0f05', '#150a03');
+    
+    Draw.rect(548, 110, 5, 250, '#251005');
+    Draw.rect(568, 110, 5, 250, '#251005');
+    Draw.rect(588, 110, 5, 250, '#251005');
+    
+    Draw.rect(586, 235, 12, 16, '#c8a040');
+    Draw.rect(587, 237, 10, 6, '#e0c060');
+    Draw.rect(586, 249, 12, 3, '#a08020');
+    
+    Draw.rect(430, 50, 40, 30, '#4a2810');
+    Draw.rectStroke(430, 50, 40, 30, '#6a3818', 4);
+    Draw.rect(433, 53, 34, 24, '#5a3018');
+    Draw.rect(436, 56, 8, 10, '#6a4020');
+    Draw.rect(448, 56, 8, 10, '#4a2010');
+    Draw.rect(436, 70, 5, 4, '#7a5030');
+    
+    Draw.rect(360, 430, 80, 4, 'rgba(30, 43, 59, 0.3)');
+    Draw.rect(375, 436, 5, 3, '#8b1a1a');
+    Draw.rect(405, 438, 5, 3, '#1a3a8b');
+    Draw.rect(425, 434, 4, 3, '#c8a000');
+    
+    Draw.rect(380, 180, 80, 8, 'rgba(0,0,0,0.1)');
+    Draw.rect(250, 200, 60, 6, 'rgba(0,0,0,0.08)');
 }
 
 function drawCandleLight() {
-    const flick = 0.03 + Math.sin(Date.now() / 180) * 0.015;
-    Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT, `rgba(255,190,90,${flick})`);
+    const flick = 0.04 + Math.sin(Date.now() / 180) * 0.02 + Math.sin(Date.now() / 270) * 0.01;
+    Draw.gradientRadial(272, 90, 180, `rgba(255, 190, 90, ${flick})`, 'rgba(255, 190, 90, 0)');
 }
 
 function triggerCandleFlash() {
     G.flashTime = 40;
-    G.flashAlpha = 0.28;
+    G.flashAlpha = 0.3;
 }
 
 function updateFlash() {
     if (G.flashTime > 0) {
         G.flashTime--;
-        G.flashAlpha *= 0.91;
-        Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT, `rgba(255,190,90,${G.flashAlpha})`);
+        G.flashAlpha *= 0.88;
+        Draw.rect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT, `rgba(255, 200, 100, ${G.flashAlpha})`);
     }
 }
 
 function drawCandle() {
     const cx = 260, cy = 90;
-    Draw.rect(cx, cy + 38, 24, 6, '#4a2810');
-    Draw.rect(cx + 2, cy + 40, 20, 3, '#5a3818');
-    Draw.rect(cx + 3, cy + 43, 18, 2, '#3a1800');
-    Draw.rect(cx + 6, cy + 14, 12, 24, '#f5e6c8');
+    Draw.rect(cx, cy + 38, 24, 8, '#4a2810');
+    Draw.rect(cx + 2, cy + 40, 20, 4, '#5a3818');
+    Draw.rect(cx + 3, cy + 44, 18, 3, '#3a1800');
+    Draw.gradientRect(cx + 6, cy + 14, 12, 24, '#faf0dd', '#e8dcc8');
     Draw.rect(cx + 8, cy + 16, 8, 20, '#e0cfa0');
-    Draw.rect(cx + 9, cy + 16, 3, 6, '#faf0dd');
+    Draw.rect(cx + 9, cy + 16, 3, 6, '#fff8e8');
+    
     G.candleTimer++;
-    const flick = Math.sin(G.candleTimer * 0.35) * 3 + Math.sin(G.candleTimer * 0.7) * 1;
-    Draw.rect(cx + 7 + flick, cy + 2, 8, 12, '#ff8800');
-    Draw.rect(cx + 9 + flick, cy + 4, 4, 8, '#ffcc00');
-    Draw.rect(cx + 10, cy + 6, 2, 4, '#fff8e0');
-    Draw.rect(cx - 6, cy - 8, 32, 32, 'rgba(255,180,40,0.08)');
+    const flick = Math.sin(G.candleTimer * 0.35) * 3 + Math.sin(G.candleTimer * 0.7) * 1 + Math.sin(G.candleTimer * 1.3) * 0.5;
+    Draw.gradientRect(cx + 7 + flick, cy + 2, 8, 12, '#ffaa40', '#ff6600');
+    Draw.gradientRect(cx + 9 + flick, cy + 4, 4, 8, '#ffcc60', '#ffaa20');
+    Draw.rect(cx + 10, cy + 6, 2, 4, '#fffae0');
+    
+    const flameGlow = 0.08 + Math.sin(G.candleTimer * 0.3) * 0.03;
+    Draw.gradientRadial(cx + 11 + flick, cy + 8, 18, `rgba(255, 180, 40, ${flameGlow})`, 'rgba(255, 180, 40, 0)');
 }
 
 function drawPaintTube(x, y, c1, c2) {
-    Draw.rect(x, y + 4, 20, 16, c1);
+    Draw.gradientRect(x, y + 4, 20, 16, c1, c2 || c1);
     Draw.rect(x + 3, y + 7, 14, 8, c2 || c1);
     Draw.rect(x + 18, y + 6, 4, 10, '#c8a840');
     Draw.rect(x + 2, y + 4, 12, 3, '#fff');
-    Draw.rect(x + 3, y + 5, 6, 2, 'rgba(255,255,255,0.25)');
+    Draw.rect(x + 3, y + 5, 6, 2, 'rgba(255,255,255,0.3)');
 }
 
 function drawTrashBasket() {
@@ -509,8 +607,8 @@ function drawPaintingPartial(px, py, ph) {
 function drawCharacter(ch, isHovered) {
     const x = ch.position.x, y = ch.position.y, cw = 48, chh = 64;
     if (isHovered) {
-        Draw.rect(x - 3, y - 3, cw + 6, chh + 6, 'rgba(255,255,200,0.12)');
-        Draw.rectStroke(x - 3, y - 3, cw + 6, chh + 6, 'rgba(200,160,60,0.4)', 2);
+        Draw.rect(x - 4, y - 4, cw + 8, chh + 8, 'rgba(255,255,200,0.15)');
+        Draw.rectStroke(x - 4, y - 4, cw + 8, chh + 8, 'rgba(200,160,60,0.5)', 2);
     }
     
     const hx = x + 16, hy = y, bodyX = x + 12, bodyY = y + 16;
@@ -581,8 +679,8 @@ function drawCharacter(ch, isHovered) {
     Draw.rect(x + 15, y + 51, 6, 12, '#222'); Draw.rect(x + 27, y + 51, 6, 12, '#222');
     Draw.rect(x + 13, y + 63, 10, 2, '#2a1a0a'); Draw.rect(x + 25, y + 63, 10, 2, '#2a1a0a');
     
-    Draw.rect(x - 4, y - 18, cw + 8, 16, 'rgba(0,0,0,0.75)');
-    Draw.rectStroke(x - 4, y - 18, cw + 8, 16, 'rgba(180,140,80,0.5)', 1);
+    Draw.rect(x - 4, y - 18, cw + 8, 16, 'rgba(0,0,0,0.8)');
+    Draw.rectStroke(x - 4, y - 18, cw + 8, 16, 'rgba(180,140,80,0.6)', 1);
     Draw.text(ch.name, x + cw / 2, y - 5, '#ffe0a0', '10px "Press Start 2P", monospace', 'center');
 }
 
@@ -707,8 +805,8 @@ function handleDialogueClick(pos) {
     if (G.dialogueChoices.length === 0) return;
     const py = CONFIG.CANVAS_HEIGHT - 145;
     for (let i = 0; i < G.dialogueChoices.length; i++) {
-        const bx = 30, by = py + 26 + i * 38;
-        if (pos.x >= bx && pos.x <= bx + CONFIG.CANVAS_WIDTH - 60 && pos.y >= by && pos.y <= by + 32) {
+        const bx = 20, by = py + 20 + i * 45;
+        if (pos.x >= bx && pos.x <= bx + CONFIG.CANVAS_WIDTH - 40 && pos.y >= by && pos.y <= by + 38) {
             G.selectChoice(i);
             return;
         }
@@ -781,23 +879,23 @@ function drawUI() {
     const lc = G.emotion < 30 ? '#888' : (G.emotion < 50 ? '#aaa' : (G.emotion < 70 ? '#55efc4' : '#ffd700'));
     Draw.text(lb, hx + 18, hy + 26, lc, '8px "Press Start 2P", monospace');
     
-    const iy = CONFIG.CANVAS_HEIGHT - 44;
-    Draw.rect(0, iy, CONFIG.CANVAS_WIDTH, 48, 'rgba(0,0,0,0.78)');
-    Draw.rectStroke(0, iy, CONFIG.CANVAS_WIDTH, 48, '#5a4030', 2);
-    Draw.rectStroke(1, iy + 1, CONFIG.CANVAS_WIDTH - 2, 46, '#3a2010', 2);
-    Draw.text('物 品', 10, iy + 18, '#b09060', '10px "Press Start 2P", monospace');
+    const iy = CONFIG.CANVAS_HEIGHT - 50;
+    Draw.rect(0, iy, CONFIG.CANVAS_WIDTH, 50, 'rgba(0,0,0,0.8)');
+    Draw.rectStroke(0, iy, CONFIG.CANVAS_WIDTH, 50, '#5a4030', 2);
+    Draw.rectStroke(1, iy + 1, CONFIG.CANVAS_WIDTH - 2, 48, '#3a2010', 2);
+    Draw.text('物 品', 10, iy + 20, '#b09060', '10px "Press Start 2P", monospace');
     
     const ic = { '猩红': '#b22222', '钴蓝': '#2244aa', '铬黄': '#c8a000', '炭笔': '#333' };
     for (let i = 0; i < G.inventory.length; i++) {
         const ix = 100 + i * 90, item = G.inventory[i], color = ic[item] || '#888';
-        Draw.rect(ix, iy + 10, 22, 16, color);
-        Draw.rect(ix + 20, iy + 11, 3, 14, '#c8a840');
-        Draw.rect(ix + 2, iy + 11, 8, 3, 'rgba(255,255,255,0.2)');
-        Draw.text(item, ix, iy + 42, '#e0d0c0', '8px "Press Start 2P", monospace');
+        Draw.rect(ix, iy + 12, 22, 16, color);
+        Draw.rect(ix + 20, iy + 13, 3, 14, '#c8a840');
+        Draw.rect(ix + 2, iy + 13, 8, 3, 'rgba(255,255,255,0.2)');
+        Draw.text(item, ix, iy + 45, '#e0d0c0', '8px "Press Start 2P", monospace');
     }
     
     if (G.hasFlag('paintingDone')) {
-        Draw.rect(CONFIG.CANVAS_WIDTH / 2 - 130, CONFIG.CANVAS_HEIGHT / 2 - 35, 260, 80, 'rgba(0,0,0,0.88)');
+        Draw.rect(CONFIG.CANVAS_WIDTH / 2 - 130, CONFIG.CANVAS_HEIGHT / 2 - 35, 260, 80, 'rgba(0,0,0,0.9)');
         Draw.rectStroke(CONFIG.CANVAS_WIDTH / 2 - 130, CONFIG.CANVAS_HEIGHT / 2 - 35, 260, 80, '#c8a840', 3);
         Draw.text('第一章 完成', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 - 10, '#c8a840', '14px "Press Start 2P", monospace', 'center');
         Draw.text('→ 前往巴黎 →', CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2 + 22, '#ffe0a0', '10px "Press Start 2P", monospace', 'center');
@@ -808,7 +906,7 @@ function drawUI() {
     if (G.showText) {
         G.showTextTimer--;
         const alpha = Math.min(1, G.showTextTimer / 30);
-        Draw.rect(30, CONFIG.CANVAS_HEIGHT / 2 - 36, CONFIG.CANVAS_WIDTH - 60, 50, `rgba(0,0,0,${0.78 * alpha})`);
+        Draw.rect(30, CONFIG.CANVAS_HEIGHT / 2 - 36, CONFIG.CANVAS_WIDTH - 60, 50, `rgba(0,0,0,${0.8 * alpha})`);
         Draw.rectStroke(30, CONFIG.CANVAS_HEIGHT / 2 - 36, CONFIG.CANVAS_WIDTH - 60, 50, `rgba(200,160,60,${alpha})`, 2);
         const words = Utils.wrapText(G.showText, CONFIG.CANVAS_WIDTH - 100);
         for (let i = 0; i < Math.min(words.length, 3); i++) {
@@ -819,29 +917,29 @@ function drawUI() {
 }
 
 function drawDialogueUI() {
-    const dy = CONFIG.CANVAS_HEIGHT - 150;
-    Draw.rect(0, dy, CONFIG.CANVAS_WIDTH, 154, 'rgba(0,0,0,0.9)');
-    Draw.rectStroke(0, dy, CONFIG.CANVAS_WIDTH, 154, '#5a4030', 3);
-    Draw.rectStroke(2, dy + 2, CONFIG.CANVAS_WIDTH - 4, 150, '#c8a840', 1);
+    const dy = CONFIG.CANVAS_HEIGHT - 160;
+    Draw.rect(0, dy, CONFIG.CANVAS_WIDTH, 160, 'rgba(0,0,0,0.92)');
+    Draw.rectStroke(0, dy, CONFIG.CANVAS_WIDTH, 160, '#5a4030', 3);
+    Draw.rectStroke(2, dy + 2, CONFIG.CANVAS_WIDTH - 4, 156, '#c8a840', 1);
     
     const sn = G.characters[G.dialogueSpeaker] ? G.characters[G.dialogueSpeaker].name : G.dialogueSpeaker;
-    Draw.text(sn, 16, dy + 18, '#c8a840', '11px "Press Start 2P", monospace');
+    Draw.text(sn, 16, dy + 20, '#c8a840', '11px "Press Start 2P", monospace');
     
     if (G.dialogueText) {
         const words = Utils.wrapText(G.dialogueText, CONFIG.CANVAS_WIDTH - 36);
         for (let i = 0; i < Math.min(words.length, 3); i++) {
-            Draw.text(words[i], 16, dy + 38 + i * 14, '#f0ead8', '9px "Press Start 2P", monospace');
+            Draw.text(words[i], 16, dy + 42 + i * 14, '#f0ead8', '9px "Press Start 2P", monospace');
         }
     }
     
     if (G.dialogueChoices.length > 0) {
         for (let i = 0; i < G.dialogueChoices.length; i++) {
-            const bx = 14, by = dy + 80 + i * 22, c = G.dialogueChoices[i];
-            const isHovered = G.selectedChoice === i || (mouseX >= bx && mouseX <= bx + CONFIG.CANVAS_WIDTH - 28 && mouseY >= by && mouseY <= by + 20);
-            Draw.rect(bx, by, CONFIG.CANVAS_WIDTH - 28, 22, isHovered ? '#3a2a1a' : '#1a1008');
-            Draw.rectStroke(bx, by, CONFIG.CANVAS_WIDTH - 28, 22, isHovered ? '#c8a840' : '#5a4030', 1.5);
-            const arrow = G.selectedChoice === i ? '▶' : ' ';
-            Draw.text(`${arrow} ${c.text}`, bx + 8, by + 15, isHovered ? '#fff' : '#aaa', '8px "Press Start 2P", monospace');
+            const bx = 20, by = dy + 85 + i * 45, c = G.dialogueChoices[i];
+            const isHovered = G.selectedChoice === i || (mouseX >= bx && mouseX <= bx + CONFIG.CANVAS_WIDTH - 40 && mouseY >= by && mouseY <= by + 38);
+            Draw.rect(bx, by, CONFIG.CANVAS_WIDTH - 40, 38, isHovered ? '#3a2a1a' : '#1a1008');
+            Draw.rectStroke(bx, by, CONFIG.CANVAS_WIDTH - 40, 38, isHovered ? '#c8a840' : '#5a4030', 2);
+            const arrow = G.selectedChoice === i ? '▶' : '○';
+            Draw.text(`${arrow} ${c.text}`, bx + 12, by + 26, isHovered ? '#fff' : '#aaa', '9px "Press Start 2P", monospace');
         }
     }
 }
