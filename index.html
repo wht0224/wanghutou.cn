@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>梵高 - 第一章：吃土豆的人</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#game-wrapper{position:relative}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;border:3px solid #3a2820;box-shadow:0 0 40px rgba(180,120,40,0.2),0 0 80px rgba(180,100,30,0.1)}
+@media(max-width:660px){canvas{width:100vw;height:auto;border:none}}
+</style>
+</head>
+<body><div id="game-wrapper"><canvas id="gc"></canvas></div>
+<script>
+(function(){
+'use strict';
+const canvas=document.getElementById('gc');
+const ctx=canvas.getContext('2d');
+const W=640,H=480;
+canvas.width=W;canvas.height=H;
+ctx.imageSmoothingEnabled=false;
+
+// ============================================
+// 全局状态管理 G 对象
+// ============================================
+const G={
+    chapter:1,inventory:[],flags:{},dialogueProgress:{},emotion:35,
+    counters:{candlesLit:0,trashSearch:0},
+    dialogueActive:false,currentDialogue:null,currentNode:null,
+    dialogueText:'',dialogueChoices:[],dialogueSpeaker:'',
+    showText:'',showTextTimer:0,
+    fatherTimer:0,
+    paintingPhase:0,paintingAnimTimer:0,
+    candleFrame:0,candleTimer:0,
+
+    setFlag(key,val){this.flags[key]=val;},
+    hasFlag(key){return !!this.flags[key];},
+    addItem(item){if(!this.inventory.includes(item))this.inventory.push(item);},
+    hasItem(item){return this.inventory.includes(item);},
+    modEmotion(v){this.emotion=Math.max(0,Math.min(100,this.emotion+v));},
+
+    startDialogue(treeId){this.dialogueActive=true;this.currentDialogue=treeId;this.advanceDialogue('node1');},
+    advanceDialogue(nodeId){
+        const tree=DIALOGUES[this.currentDialogue];if(!tree)return;
+        const node=tree.find(n=>n.id===nodeId);if(!node){this.endDialogue();return;}
+        this.currentNode=node;this.dialogueSpeaker=node.speaker;this.dialogueText=node.text;
+        this.dialogueChoices=node.choices||[];
+        if(this.dialogueChoices.length===0&&node.next){
+            this.autoNext=setTimeout(()=>{
+                if(node.next==='end')this.endDialogue();
+                else this.advanceDialogue(node.next);
+            },2000);
+        }
+    },
+    selectChoice(idx){
+        if(this.autoNext)clearTimeout(this.autoNext);
+        const choice=this.dialogueChoices[idx];if(!choice)return;
+        const all=[];if(choice.effect)all.push(...[].concat(choice.effect));
+        if(choice.extraEffect)all.push(...[].concat(choice.extraEffect));
+        for(const e of all){if(e.type==='emotion')this.modEmotion(e.value);else if(e.type==='flag')this.setFlag(e.key,e.value);else if(e.type==='item')this.addItem(e.itemName);}
+        if(choice.nextNode==='end')this.endDialogue();else this.advanceDialogue(choice.nextNode);
+    },
+    endDialogue(){if(this.autoNext)clearTimeout(this.autoNext);this.dialogueActive=false;this.currentDialogue=null;this.currentNode=null;this.dialogueText='';this.dialogueChoices=[];this.dialogueSpeaker='';},
+    showFloatingText(text,dur=200){this.showText=text;this.showTextTimer=dur;},
+};
+
+// ============================================
+// 精致像素人物绘制 (48×64) - 大幅增强美术细节
+// ============================================
+function drawCharacter(ch,isHovered){
+    const x=ch.position.x,y=ch.position.y,cw=48,chh=64;
+    if(isHovered){
+        ctx.fillStyle='rgba(255,255,200,0.12)';ctx.fillRect(x-3,y-3,cw+6,chh+6);
+        ctx.strokeStyle='rgba(200,160,60,0.4)';ctx.lineWidth=2;ctx.strokeRect(x-3,y-3,cw+6,chh+6);
+    }
+    const hx=x+16,hy=y,bodyX=x+12,bodyY=y+16,legY=y+50;
+
+    // ==== 头部 (16×14) ====
+    if(ch.id==='father'){
+        // 父亲 - 秃顶、严肃
+        ctx.fillStyle='#d4a574';ctx.fillRect(hx,hy,16,14);
+        ctx.fillStyle='#3a3a3a';ctx.fillRect(hx+1,hy-1,14,3);
+        ctx.fillStyle='#c9a06c';ctx.fillRect(hx+4,hy-3,8,3);
+        ctx.fillStyle='#222';ctx.fillRect(hx+3,hy+3,10,2);
+        ctx.fillStyle='#000';ctx.fillRect(hx+4,hy+5,2,2);ctx.fillRect(hx+10,hy+5,2,2);
+        ctx.fillStyle='#fff';ctx.fillRect(hx+4,hy+5,1,1);ctx.fillRect(hx+10,hy+5,1,1);
+        ctx.fillStyle='#b87333';ctx.fillRect(hx+2,hy+9,12,2);
+        ctx.fillStyle='#555';ctx.fillRect(hx+6,hy+11,4,1);
+        ctx.fillStyle='#c9a06c';ctx.fillRect(hx,hy+6,2,8);ctx.fillRect(hx+14,hy+6,2,8);
+    }else if(ch.id==='mother'){
+        // 母亲 - 灰色发髻、柔和
+        ctx.fillStyle='#e8c9a0';ctx.fillRect(hx,hy,16,14);
+        ctx.fillStyle='#9a9a9a';ctx.fillRect(hx-1,hy-4,18,6);
+        ctx.fillStyle='#b0b0b0';ctx.fillRect(hx+3,hy-7,10,5);
+        ctx.fillStyle='#d0d0d0';ctx.fillRect(hx+2,hy-4,3,2);
+        ctx.fillStyle='#c9a06c';ctx.fillRect(hx,hy+4,2,8);ctx.fillRect(hx+14,hy+4,2,8);
+        ctx.fillStyle='#3a3a3a';ctx.fillRect(hx+4,hy+3,2,1);ctx.fillRect(hx+10,hy+3,2,1);
+        ctx.fillStyle='#2a2a2a';ctx.fillRect(hx+5,hy+5,2,2);ctx.fillRect(hx+10,hy+5,2,2);
+        ctx.fillStyle='#fff';ctx.fillRect(hx+5,hy+5,1,1);ctx.fillRect(hx+10,hy+5,1,1);
+        ctx.fillStyle='#c46464';ctx.fillRect(hx+6,hy+9,4,2);
+        ctx.fillStyle='#e8c9c0';ctx.fillRect(hx+5,hy+11,6,2);
+    }else{
+        // 梵高 - 红胡须、消瘦、深绿眼
+        ctx.fillStyle='#d4a57a';ctx.fillRect(hx,hy,16,14);
+        ctx.fillStyle='#8B4513';ctx.fillRect(hx+1,hy-2,14,4);
+        ctx.fillStyle='#a05518';ctx.fillRect(hx+2,hy-3,12,2);
+        ctx.fillStyle='#c07030';ctx.fillRect(hx+4,hy-1,8,1);
+        ctx.fillStyle='#c09060';ctx.fillRect(hx+1,hy+6,2,3);ctx.fillRect(hx+13,hy+6,2,3);
+        ctx.fillStyle='#b22222';ctx.fillRect(hx+1,hy+9,14,3);
+        ctx.fillStyle='#c83030';ctx.fillRect(hx+3,hy+11,10,2);
+        ctx.fillStyle='#901818';ctx.fillRect(hx+2,hy+8,12,1);
+        ctx.fillStyle='#2a5530';ctx.fillRect(hx+4,hy+4,2,2);ctx.fillRect(hx+10,hy+4,2,2);
+        ctx.fillStyle='#fff';ctx.fillRect(hx+4,hy+4,1,1);ctx.fillRect(hx+10,hy+4,1,1);
+        ctx.fillStyle='#222';ctx.fillRect(hx+3,hy+3,4,1);ctx.fillRect(hx+9,hy+3,4,1);
+    }
+
+    // ==== 身体 (24×34) ====
+    ctx.fillStyle='#221a10';ctx.fillRect(bodyX+3,bodyY+3,20,30);
+    if(ch.id==='father'){
+        ctx.fillStyle='#1a1a1a';ctx.fillRect(bodyX,bodyY,24,34);
+        ctx.fillStyle='#222';ctx.fillRect(bodyX+2,bodyY+4,20,26);
+        ctx.fillStyle='#eee';ctx.fillRect(bodyX+7,bodyY,10,5);
+        ctx.fillStyle='#fff';ctx.fillRect(bodyX+9,bodyY+1,6,3);
+        ctx.fillStyle='#2a2a2a';ctx.fillRect(bodyX+11,bodyY+12,2,2);
+        ctx.fillStyle='#2a2a2a';ctx.fillRect(bodyX+11,bodyY+20,2,2);
+        ctx.fillStyle='#2a2a2a';ctx.fillRect(bodyX+11,bodyY+28,2,2);
+    }else if(ch.id==='mother'){
+        ctx.fillStyle='#3e2723';ctx.fillRect(bodyX,bodyY,24,34);
+        ctx.fillStyle='#4a3028';ctx.fillRect(bodyX+3,bodyY+6,18,22);
+        ctx.fillStyle='#523830';ctx.fillRect(bodyX+2,bodyY+16,20,1);
+        ctx.fillStyle='#523830';ctx.fillRect(bodyX+2,bodyY+24,20,1);
+        ctx.fillStyle='#d4c5b0';ctx.fillRect(bodyX+7,bodyY,10,4);
+        ctx.fillStyle='#c0b098';ctx.fillRect(bodyX+8,bodyY+1,8,2);
+    }else{
+        ctx.fillStyle='#1e2b3b';ctx.fillRect(bodyX,bodyY,24,34);
+        ctx.fillStyle='#263547';ctx.fillRect(bodyX+3,bodyY+4,18,26);
+        ctx.fillStyle='#2a3d52';ctx.fillRect(bodyX+5,bodyY+12,14,1);
+        ctx.fillStyle='#2a3d52';ctx.fillRect(bodyX+4,bodyY+20,16,1);
+        ctx.fillStyle='#ddd';ctx.fillRect(bodyX+7,bodyY+1,10,3);
+        ctx.fillStyle='#fff';ctx.fillRect(bodyX+9,bodyY+2,6,1);
+        ctx.fillStyle='#4a3a20';ctx.fillRect(bodyX+11,bodyY+10,2,2);
+        ctx.fillStyle='#4a3a20';ctx.fillRect(bodyX+11,bodyY+18,2,2);
+    }
+
+    // ==== 腿 + 鞋 ====
+    ctx.fillStyle='#1a1a1a';ctx.fillRect(x+14,legY,8,14);ctx.fillRect(x+26,legY,8,14);
+    ctx.fillStyle='#222';ctx.fillRect(x+15,legY+1,6,12);ctx.fillRect(x+27,legY+1,6,12);
+    ctx.fillStyle='#2a1a0a';ctx.fillRect(x+13,legY+13,10,2);ctx.fillRect(x+25,legY+13,10,2);
+
+    // ==== 名称标签 ====
+    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(x-4,y-18,cw+8,16);
+    ctx.strokeStyle='rgba(180,140,80,0.5)';ctx.lineWidth=1;ctx.strokeRect(x-4,y-18,cw+8,16);
+    ctx.fillStyle='#ffe0a0';ctx.font='10px "Press Start 2P", monospace';
+    ctx.textAlign='center';ctx.fillText(ch.name,x+cw/2,y-5);
+}
+
+// ============================================
+// 精致场景 - 19世纪荷兰农舍
+// ============================================
+function drawScene(){
+    // 墙壁
+    ctx.fillStyle='#3d2817';ctx.fillRect(0,0,W,360);
+    // 菱形壁纸图案
+    ctx.fillStyle='#422e1b';
+    for(let y=16;y<344;y+=40)
+        for(let x=16;x<W;x+=60){
+            ctx.fillRect(x,y,20,18);
+            ctx.fillStyle='#3a2414';ctx.fillRect(x+2,y+2,16,14);
+            ctx.fillStyle='#422e1b';
+        }
+    // 壁灯暖光范围
+    ctx.fillStyle='rgba(255,180,80,0.04)';ctx.fillRect(120,90,130,150);
+    ctx.fillStyle='rgba(255,180,80,0.025)';ctx.fillRect(60,70,250,190);
+
+    // 天花板梁
+    ctx.fillStyle='#2a1808';ctx.fillRect(0,0,W,8);
+    ctx.fillStyle='#1a0a00';ctx.fillRect(0,6,W,3);
+    ctx.fillStyle='#3a2810';ctx.fillRect(100,0,6,10);
+    ctx.fillStyle='#3a2810';ctx.fillRect(300,0,6,10);
+    ctx.fillStyle='#3a2810';ctx.fillRect(500,0,6,10);
+
+    // 地板 - 透视木纹
+    ctx.fillStyle='#2a1808';ctx.fillRect(0,360,W,120);
+    const vp=W/2+40;
+    for(let i=0;i<20;i++){
+        const t=i/20,y0=360+t*120;
+        ctx.fillStyle='#301c0a';ctx.fillRect(vp-W*(1-t*0.6)/2,y0,W*(1-t*0.6),2);
+    }
+    for(let i=0;i<12;i++){
+        const t=i/12,y=360+t*120,x0=vp-W*0.6*(1-t),x1=vp+W*0.6*(1-t);
+        ctx.fillStyle='#2c1a09';ctx.fillRect(x0,y,3,480-y);ctx.fillRect(x1,y,3,480-y);
+    }
+
+    // ==== 窗户 (左) ====
+    const wx=150,wy=50,ww=70,wh=90;
+    ctx.fillStyle='#4a3020';ctx.fillRect(wx-5,wy-5,ww+10,wh+10);
+    ctx.strokeStyle='#5a4030';ctx.lineWidth=5;ctx.strokeRect(wx-5,wy-5,ww+10,wh+10);
+    ctx.fillStyle='#0a0d1a';ctx.fillRect(wx,wy,ww,wh);
+    // 月亮
+    ctx.fillStyle='#e8d890';ctx.fillRect(wx+40,wy+12,16,16);
+    ctx.fillStyle='#f0e8b0';ctx.fillRect(wx+42,wy+14,12,12);
+    ctx.fillStyle='#0a0d1a';ctx.fillRect(wx+34,wy+10,8,8);
+    // 星星
+    ctx.fillStyle='#fff';
+    ctx.fillRect(wx+10,wy+8,2,2);ctx.fillRect(wx+55,wy+22,2,2);
+    ctx.fillRect(wx+18,wy+48,2,2);ctx.fillRect(wx+52,wy+58,2,2);
+    ctx.fillRect(wx+30,wy+15,1,1);ctx.fillRect(wx+6,wy+65,2,2);
+    // 窗格
+    ctx.fillStyle='#4a3020';ctx.fillRect(wx+33,wy,4,wh);ctx.fillRect(wx,wy+42,ww,4);
+    // 窗台
+    ctx.fillStyle='#5a3a20';ctx.fillRect(wx-5,wy+wh-4,ww+10,8);
+    ctx.fillStyle='#6a4a2a';ctx.fillRect(wx-4,wy+wh-3,ww+8,4);
+
+    // ==== 门框 (右) ====
+    const dx=530,dy=110,dw=80,dh=250;
+    ctx.fillStyle='#3a2210';ctx.fillRect(dx-8,dy-8,dw+16,dh+16);
+    ctx.strokeStyle='#5a3820';ctx.lineWidth=6;ctx.strokeRect(dx-8,dy-8,dw+16,dh+16);
+    ctx.fillStyle='#2a1508';ctx.fillRect(dx,dy,dw,dh);
+    ctx.fillStyle='#301c0a';ctx.fillRect(dx+18,dy,4,dh);
+    ctx.fillStyle='#301c0a';ctx.fillRect(dx+38,dy,4,dh);
+    ctx.fillStyle='#301c0a';ctx.fillRect(dx+58,dy,4,dh);
+    ctx.fillStyle='#c8a040';ctx.fillRect(dx+56,dy+125,10,14);
+    ctx.fillStyle='#e0c060';ctx.fillRect(dx+57,dy+127,8,4);
+    ctx.fillStyle='#a08020';ctx.fillRect(dx+56,dy+135,10,2);
+
+    // 地面颜料渍
+    ctx.fillStyle='rgba(30,43,59,0.4)';ctx.fillRect(360,430,80,3);
+    ctx.fillStyle='#8b1a1a';ctx.fillRect(375,435,5,2);
+    ctx.fillStyle='#1a3a8b';ctx.fillRect(405,437,5,2);
+    ctx.fillStyle='#c8a000';ctx.fillRect(425,433,3,2);
+    ctx.fillStyle='#8b1a1a';ctx.fillRect(390,432,3,1);
+
+    // 墙上小装饰画
+    ctx.fillStyle='#3a2010';ctx.fillRect(430,50,40,30);
+    ctx.strokeStyle='#5a3020';ctx.lineWidth=3;ctx.strokeRect(430,50,40,30);
+    ctx.fillStyle='#4a3018';ctx.fillRect(433,53,34,24);
+    ctx.fillStyle='#5a4020';ctx.fillRect(436,56,8,10);
+    ctx.fillStyle='#3a2010';ctx.fillRect(448,56,8,10);
+    ctx.fillStyle='#6a5030';ctx.fillRect(436,70,5,4);
+}
+
+// 烛光
+function drawCandleLight(){
+    const f=0.03+Math.sin(Date.now()/180)*0.015;
+    ctx.fillStyle=`rgba(255,190,90,${f})`;ctx.fillRect(0,0,W,H);
+}
+let ft=0,fa=0;
+function triggerCandleFlash(){ft=40;fa=0.28;}
+function updateFlash(){if(ft>0){ft--;fa*=0.91;ctx.fillStyle=`rgba(255,190,90,${fa})`;ctx.fillRect(0,0,W,H);}}
+
+// ============================================
+// 物品绘制函数 (所有尺寸放大)
+// ============================================
+function drawCandle(){
+    const cx=260,cy=90;
+    ctx.fillStyle='#4a2810';ctx.fillRect(cx,cy+38,24,6);
+    ctx.fillStyle='#5a3818';ctx.fillRect(cx+2,cy+40,20,3);
+    ctx.fillStyle='#3a1800';ctx.fillRect(cx+3,cy+43,18,2);
+    ctx.fillStyle='#f5e6c8';ctx.fillRect(cx+6,cy+14,12,24);
+    ctx.fillStyle='#e0cfa0';ctx.fillRect(cx+8,cy+16,8,20);
+    ctx.fillStyle='#faf0dd';ctx.fillRect(cx+9,cy+16,3,6);
+    G.candleTimer++;
+    const flick=Math.sin(G.candleTimer*0.35)*3+Math.sin(G.candleTimer*0.7)*1;
+    ctx.fillStyle='#ff8800';ctx.fillRect(cx+7+flick,cy+2,8,12);
+    ctx.fillStyle='#ffcc00';ctx.fillRect(cx+9+flick,cy+4,4,8);
+    ctx.fillStyle='#fff8e0';ctx.fillRect(cx+10,cy+6,2,4);
+    ctx.fillStyle='rgba(255,180,40,0.08)';ctx.fillRect(cx-6,cy-8,32,32);
+}
+
+function drawPaintTube(x,y,c1,c2){
+    ctx.fillStyle=c1;ctx.fillRect(x,y+4,20,14);
+    ctx.fillStyle=c2||c1;ctx.fillRect(x+3,y+7,14,8);
+    ctx.fillStyle='#c8a840';ctx.fillRect(x+18,y+6,4,10);
+    ctx.fillStyle='#fff';ctx.fillRect(x+2,y+4,12,3);
+    ctx.fillStyle='rgba(255,255,255,0.25)';ctx.fillRect(x+3,y+5,6,2);
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(x+2,y+16,14,2);
+}
+
+function drawTrashBasket(){
+    const bx=570,by=400;
+    ctx.fillStyle='#6b4226';ctx.fillRect(bx+6,by+6,36,36);
+    ctx.fillStyle='#7b5236';
+    for(let i=0;i<4;i++){ctx.fillRect(bx+6,by+6+i*9,36,3);}
+    for(let i=0;i<4;i++){ctx.fillRect(bx+6+i*9,by+6,3,36);}
+    ctx.fillStyle='#8b6246';ctx.fillRect(bx+3,by,42,8);
+    ctx.fillStyle='#9b7256';ctx.fillRect(bx+4,by+1,40,4);
+    ctx.fillStyle='#e8dcc8';ctx.fillRect(bx+10,by+10,8,6);
+    ctx.fillStyle='#ddd';ctx.fillRect(bx+20,by+12,7,5);
+    ctx.fillStyle='#f0e8d8';ctx.fillRect(bx+14,by+8,10,7);
+    ctx.fillStyle='#d4c4a8';ctx.fillRect(bx+26,by+8,6,4);
+}
+
+function drawLetter(){
+    const lx=510,ly=280;
+    ctx.fillStyle='#f5e6c8';ctx.fillRect(lx,ly,32,22);
+    ctx.strokeStyle='#c4b590';ctx.lineWidth=1;ctx.strokeRect(lx+1,ly+1,30,20);
+    ctx.beginPath();ctx.moveTo(lx,ly+10);ctx.lineTo(lx+16,ly);ctx.lineTo(lx+32,ly+10);ctx.stroke();
+    ctx.fillStyle='#b22222';ctx.fillRect(lx+11,ly+6,10,10);
+    ctx.fillStyle='#d44444';ctx.fillRect(lx+13,ly+8,6,6);
+    ctx.fillStyle='#ff0';ctx.fillRect(lx+15,ly+10,2,2);
+}
+
+function drawBible(){
+    const bx=110,by=40;
+    ctx.fillStyle='#2a1005';ctx.fillRect(bx,by,28,22);
+    ctx.fillStyle='#1a0800';ctx.fillRect(bx,by,4,22);
+    ctx.fillStyle='#c8a840';ctx.fillRect(bx+9,by+2,3,14);
+    ctx.fillRect(bx+7,by+6,7,3);
+    ctx.fillStyle='#e8dcc0';ctx.fillRect(bx+23,by+2,3,18);
+    ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(bx+3,by+3,4,16);
+}
+
+function drawEasel(){
+    const ex=380,ey=200;
+    ctx.fillStyle='#4a2a10';ctx.fillRect(ex+4,ey+50,5,40);
+    ctx.fillRect(ex+58,ey+50,5,40);
+    ctx.fillStyle='#3a1a00';ctx.fillRect(ex+28,ey+72,12,22);
+    ctx.fillStyle='#5a3a1a';ctx.fillRect(ex-2,ey+80,70,6);
+    ctx.fillStyle='#d4c4a0';ctx.fillRect(ex+2,ey-2,66,82);
+    ctx.strokeStyle='#8b7355';ctx.lineWidth=2;ctx.strokeRect(ex+2,ey-2,66,82);
+    ctx.fillStyle='#f0e0c0';ctx.fillRect(ex+6,ey+2,58,74);
+    if(G.hasFlag('paintingDone'))drawPaintingDetail(ex+6,ey+2);
+    else if(G.paintingPhase>0)drawPaintingPartial(ex+6,ey+2,G.paintingPhase);
+}
+
+function drawPaintingDetail(px,py){
+    ctx.fillStyle='#1a1008';ctx.fillRect(px,py,58,74);
+    ctx.fillStyle='#ffaa20';ctx.fillRect(px+22,py+2,14,4);
+    ctx.fillStyle='#ffcc40';ctx.fillRect(px+24,py+3,10,2);
+    ctx.fillStyle='rgba(255,170,40,0.35)';ctx.fillRect(px+8,py+6,42,18);
+    ctx.fillStyle='#3a2010';ctx.fillRect(px+4,py+44,50,18);
+    ctx.fillStyle='#4a2a14';ctx.fillRect(px+5,py+46,48,14);
+    ctx.fillStyle='#8b6914';ctx.fillRect(px+18,py+36,22,12);
+    ctx.fillStyle='#c8a870';ctx.fillRect(px+20,py+38,18,8);
+    ctx.fillStyle='#d8b880';ctx.fillRect(px+21,py+39,16,6);
+    ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(px+22,py+39,6,3);
+    ctx.fillStyle='rgba(200,180,160,0.3)';ctx.fillRect(px+22,py+28,14,8);
+    ctx.fillStyle='rgba(200,180,160,0.15)';ctx.fillRect(px+18,py+24,22,6);
+    ctx.fillStyle='#2a1a0a';ctx.fillRect(px+4,py+20,10,18);
+    ctx.fillStyle='#d4a574';ctx.fillRect(px+5,py+16,8,7);
+    ctx.fillStyle='#3a2a1a';ctx.fillRect(px+6,py+28,6,4);
+    ctx.fillStyle='#201008';ctx.fillRect(px+44,py+20,10,18);
+    ctx.fillStyle='#d4a574';ctx.fillRect(px+45,py+16,8,7);
+    ctx.fillStyle='#1a0a00';ctx.fillRect(px+10,py+14,8,12);
+    ctx.fillStyle='#c9a06c';ctx.fillRect(px+11,py+12,6,5);
+    ctx.fillStyle='#1a0a00';ctx.fillRect(px+38,py+14,8,12);
+    ctx.fillStyle='#c9a06c';ctx.fillRect(px+39,py+12,6,5);
+    ctx.fillStyle='#120800';ctx.fillRect(px+24,py+10,8,14);
+    ctx.fillStyle='#c9a06c';ctx.fillRect(px+25,py+8,6,5);
+}
+
+function drawPaintingPartial(px,py,ph){
+    ctx.fillStyle='#1a1008';ctx.fillRect(px,py,58,74);
+    if(ph>=1){ctx.fillStyle='#3a2010';ctx.fillRect(px+4,py+44,50,18);}
+    if(ph>=2){ctx.fillStyle='#8b6914';ctx.fillRect(px+18,py+36,22,12);ctx.fillStyle='#c8a870';ctx.fillRect(px+20,py+38,18,8);}
+    if(ph>=3){ctx.fillStyle='#2a1a0a';ctx.fillRect(px+4,py+20,10,18);ctx.fillStyle='#201008';ctx.fillRect(px+44,py+20,10,18);}
+    if(ph>=4){ctx.fillStyle='#1a0a00';ctx.fillRect(px+10,py+14,8,12);ctx.fillRect(px+38,py+14,8,12);ctx.fillStyle='#120800';ctx.fillRect(px+24,py+10,8,14);}
+    if(ph>=5){
+        ctx.fillStyle='#ffaa20';ctx.fillRect(px+22,py+2,14,4);
+        ctx.fillStyle='#d4a574';ctx.fillRect(px+5,py+16,8,7);ctx.fillRect(px+45,py+16,8,7);
+        ctx.fillStyle='#c9a06c';ctx.fillRect(px+11,py+12,6,5);ctx.fillRect(px+39,py+12,6,5);ctx.fillRect(px+25,py+8,6,5);
+    }
+}
+
+// ============================================
+// 对话树数据
+// ============================================
+const DIALOGUES={
+    dialogue_father_confront:[
+        {id:'node1',speaker:'father',text:'文森特，你又把颜料弄得到处都是，牧师住宅不是你的画室。',choices:[
+            {text:'抱歉父亲，我马上收拾。',nextNode:'node2a',effect:{type:'emotion',value:-5},extraEffect:{type:'item',itemName:'炭笔'}},
+            {text:'我的画室在田野，这里只是我的驿站。',nextNode:'node2b',effect:{type:'emotion',value:10}},
+            {text:'你从不理解我所见的真实。',nextNode:'node2c',effect:{type:'emotion',value:15},extraEffect:{type:'flag',key:'familyTension',value:true}},
+        ]},{id:'node2a',speaker:'father',text:'收拾干净，然后去祷告。',next:'end'},
+        {id:'node2b',speaker:'father',text:'驿站？你连路费都是提奥给的。摇头离去',next:'end'},
+        {id:'node2c',speaker:'father',text:'真实？你连自己都养不活。愤而出门',next:'end'},
+    ],
+    dialogue_mother_comfort:[
+        {id:'node1',speaker:'mother',text:'文森特，你看起来又没睡好。',choices:[
+            {text:'我梦见了矿工们的手，像树根一样。',nextNode:'node2',effect:{type:'emotion',value:5}},
+            {text:'没事，母亲。',nextNode:'end'},
+        ]},{id:'node2',speaker:'mother',text:'你总是想着那些穷人，可谁来照顾你呢？',next:'end'},
+    ],
+    dialogue_mother_art:[
+        {id:'node1',speaker:'mother',text:'今天提奥来信了吗？他总寄来颜料。',choices:[
+            {text:'他寄来了铬黄，像一小块太阳。',nextNode:'end',effect:{type:'emotion',value:5}},
+        ]},
+    ],
+};
+
+// ============================================
+// 人物注册表 (640×480 位置)
+// ============================================
+G.characters={
+    vincent:{id:'vincent',name:'梵高',role:'主角',position:{x:350,y:210,w:48,h:64},canMove:false,dialogues:[]},
+    mother:{id:'mother',name:'母亲',role:'配角',position:{x:540,y:210,w:48,h:64},initiallyHidden:false,dialogues:['dialogue_mother_comfort','dialogue_mother_art'],visible:true},
+    father:{id:'father',name:'父亲',role:'配角',position:{x:80,y:150,w:48,h:64},initiallyHidden:true,dialogues:['dialogue_father_confront'],visible:false},
+};
+
+// ============================================
+// 谜题/交互物品注册表 (640×480 位置)
+// ============================================
+const INTERACTABLES={
+    candle:{id:'candle',type:'interactive',name:'烛台',position:{x:260,y:90,w:24,h:44}},
+    scarlet_tube:{id:'scarlet_tube',type:'pickup',name:'猩红颜料管',position:{x:40,y:410,w:20,h:16},hidden:true,visibleCondition:'candleClicked3',pickupItem:'猩红',pickupText:'猩红取自泥土深处的铁矿，带着生涩的腥味。'},
+    cobalt_tube:{id:'cobalt_tube',type:'pickup',name:'钴蓝颜料管',position:{x:400,y:350,w:20,h:16},hidden:false,pickupItem:'钴蓝',pickupText:'冷峻的钴蓝，像矿工指节上的青筋。'},
+    trash_basket:{id:'trash_basket',type:'interactive',name:'废纸篓',position:{x:570,y:400,w:42,h:42}},
+    chrome_tube:{id:'chrome_tube',type:'pickup',name:'铬黄颜料管',position:{x:570,y:380,w:20,h:16},hidden:true,visibleCondition:'chromeFound',pickupItem:'铬黄',pickupText:'弟弟寄来的铬黄，像一盏微弱的希望之灯。'},
+    letter:{id:'letter',type:'interactive',name:'提奥的来信',position:{x:510,y:280,w:32,h:22}},
+    easel:{id:'easel',type:'puzzle',name:'画架',position:{x:380,y:200,w:70,h:84},requiredItems:['猩红','钴蓝','铬黄']},
+    bible:{id:'bible',type:'interactive',name:'圣经',position:{x:110,y:40,w:28,h:22}},
+};
+
+// ============================================
+// 点击处理
+// ============================================
+let mouseX=W/2,mouseY=H/2;
+function getClickPos(e){const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*(W/r.width),y:(e.clientY-r.top)*(H/r.height)};}
+function isInside(pos,rect){return pos.x>=rect.x&&pos.x<=rect.x+rect.w&&pos.y>=rect.y&&pos.y<=rect.y+rect.h;}
+function isHoverCh(ch){if(!ch.visible)return false;const p=ch.position;return mouseX>=p.x&&mouseX<=p.x+p.w+4&&mouseY>=p.y&&mouseY<=p.y+p.h+4;}
+function isHoverItem(d){const p=d.position;return mouseX>=p.x&&mouseX<=p.x+p.w&&mouseY>=p.y&&mouseY<=p.y+p.h;}
+
+function handleClick(pos){
+    if(G.dialogueActive){handleDialogueClick(pos);return;}
+    // 人物
+    if(G.characters.father.visible&&isInside(pos,{...G.characters.father.position,w:48,h:64})){G.startDialogue('dialogue_father_confront');return;}
+    if(isInside(pos,{...G.characters.mother.position,w:48,h:64})){G.emotion<40?G.startDialogue('dialogue_mother_comfort'):G.startDialogue('dialogue_mother_art');return;}
+    // 烛台
+    if(isInside(pos,INTERACTABLES.candle.position)){G.counters.candlesLit++;G.candleFrame=(G.candleFrame+1)%2;triggerCandleFlash();if(G.counters.candlesLit>=3){G.setFlag('candleClicked3',true);G.showFloatingText('烛光摇曳，你注意到柜子下有什么东西……',240);}return;}
+    // 猩红
+    const st=INTERACTABLES.scarlet_tube;if(!G.hasItem('猩红')&&(st.hidden?G.hasFlag(st.visibleCondition):true)&&isInside(pos,st.position)){G.addItem('猩红');G.showFloatingText(st.pickupText);return;}
+    // 钴蓝
+    if(!G.hasItem('钴蓝')&&isInside(pos,INTERACTABLES.cobalt_tube.position)){G.addItem('钴蓝');G.showFloatingText(INTERACTABLES.cobalt_tube.pickupText);return;}
+    // 废纸篓
+    if(isInside(pos,INTERACTABLES.trash_basket.position)){G.counters.trashSearch++;if(G.counters.trashSearch>=3&&!G.hasFlag('chromeFound')){G.setFlag('chromeFound',true);G.showFloatingText('你找到了铬黄颜料管！',200);}else if(G.counters.trashSearch<3){G.showFloatingText('你在废纸篓中翻找……',120);}else{G.showFloatingText('废纸篓里已经没有东西了。',120);}return;}
+    // 铬黄
+    const cht=INTERACTABLES.chrome_tube;if(!G.hasItem('铬黄')&&(cht.hidden?G.hasFlag(cht.visibleCondition):true)&&isInside(pos,cht.position)){G.addItem('铬黄');G.showFloatingText(cht.pickupText);return;}
+    // 信件
+    if(isInside(pos,INTERACTABLES.letter.position)){if(!G.hasFlag('letterRead')){G.setFlag('letterRead',true);G.showFloatingText('"亲爱的提奥……我渴望用深色调描绘那些在灯光下吃土豆的人……"',340);G.fatherTimer=300;}else{G.showFloatingText('"亲爱的提奥……我渴望用深色调描绘那些在灯光下吃土豆的人……"');}return;}
+    // 画架
+    if(isInside(pos,INTERACTABLES.easel.position)){const rq=INTERACTABLES.easel.requiredItems;if(rq.every(i=>G.hasItem(i))&&!G.hasFlag('paintingDone')){startPainting();}else if(G.hasFlag('paintingDone')){G.showFloatingText('《吃土豆的人》——完成。');}else{G.showFloatingText('还需要更多颜料才能开始创作。');}return;}
+    // 圣经
+    if(isInside(pos,INTERACTABLES.bible.position)){G.showFloatingText('"父亲希望我成为牧师，但我的讲坛在田野与矿坑。"');return;}
+}
+
+function handleDialogueClick(pos){
+    if(G.dialogueChoices.length===0)return;
+    const py=H-145;
+    for(let i=0;i<G.dialogueChoices.length;i++){
+        const bx=30,by=py+26+i*38;
+        if(pos.x>=bx&&pos.x<=bx+W-60&&pos.y>=by&&pos.y<=by+32){G.selectChoice(i);return;}
+    }
+}
+
+function startPainting(){G.paintingPhase=0;G.paintingAnimTimer=0;G.animatingPainting=true;}
+G.animatingPainting=false;
+function updatePaintingAnim(){
+    if(!G.animatingPainting)return;
+    G.paintingAnimTimer++;
+    if(G.paintingAnimTimer>35){G.paintingAnimTimer=0;G.paintingPhase++;
+        if(G.paintingPhase>=5){G.animatingPainting=false;G.setFlag('paintingDone',true);G.modEmotion(20);G.showFloatingText('你调和出泥土与阴影的颜色，画作完成了。',260);}
+    }
+}
+
+// 事件
+canvas.addEventListener('mousedown',e=>{e.preventDefault();handleClick(getClickPos(e));});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();handleClick(getClickPos(e.touches[0]));},{passive:false});
+canvas.addEventListener('mousemove',e=>{const p=getClickPos(e);mouseX=p.x;mouseY=p.y;});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();const p=getClickPos(e.touches[0]);mouseX=p.x;mouseY=p.y;},{passive:false});
+
+// ============================================
+// UI 渲染
+// ============================================
+function drawUI(){
+    // ==== 右上角情绪值 ====
+    const hx=W-90,hy=8;
+    // 像素心形 (12×10)
+    ctx.fillStyle='#e74c3c';
+    ctx.fillRect(hx,hy+3,2,3);ctx.fillRect(hx+2,hy,2,3);ctx.fillRect(hx+6,hy,2,3);ctx.fillRect(hx+8,hy+3,2,3);
+    ctx.fillRect(hx-2,hy+5,2,3);ctx.fillRect(hx+10,hy+5,2,3);
+    ctx.fillRect(hx,hy+5,10,2);ctx.fillRect(hx+2,hy+8,2,3);ctx.fillRect(hx+6,hy+8,2,3);
+    // 数字
+    ctx.fillStyle='#e74c3c';ctx.font='14px "Press Start 2P", monospace';ctx.textAlign='left';
+    ctx.fillText(G.emotion,hx+18,hy+11);
+    // 情绪标签
+    const lb=G.emotion<30?'低落':(G.emotion<50?'平和':(G.emotion<70?'振作':'激昂'));
+    const lc=G.emotion<30?'#888':(G.emotion<50?'#aaa':(G.emotion<70?'#55efc4':'#ffd700'));
+    ctx.fillStyle=lc;ctx.font='8px "Press Start 2P", monospace';ctx.fillText(lb,hx+18,hy+26);
+
+    // ==== 底部物品栏 ====
+    const iy=H-44;
+    ctx.fillStyle='rgba(0,0,0,0.78)';ctx.fillRect(0,iy,W,48);
+    ctx.strokeStyle='#5a4030';ctx.lineWidth=2;ctx.strokeRect(0,iy,W,48);
+    ctx.strokeStyle='#3a2010';ctx.strokeRect(1,iy+1,W-2,46);
+    ctx.fillStyle='#b09060';ctx.font='10px "Press Start 2P", monospace';ctx.textAlign='left';ctx.fillText('物 品',10,iy+18);
+    const ic={猩红:'#b22222',钴蓝:'#2244aa',铬黄:'#c8a000',炭笔:'#333'};
+    for(let i=0;i<G.inventory.length;i++){
+        const ix=100+i*90,item=G.inventory[i],cl=ic[item]||'#888';
+        ctx.fillStyle=cl;ctx.fillRect(ix,iy+10,22,16);
+        ctx.fillStyle='#c8a840';ctx.fillRect(ix+20,iy+11,3,14);
+        ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(ix+2,iy+11,8,3);
+        ctx.fillStyle='#e0d0c0';ctx.font='8px "Press Start 2P", monospace';ctx.fillText(item,ix,iy+42);
+    }
+
+    // ==== 章节完成 ====
+    if(G.hasFlag('paintingDone')){
+        ctx.fillStyle='rgba(0,0,0,0.88)';ctx.fillRect(W/2-130,H/2-35,260,80);
+        ctx.strokeStyle='#c8a840';ctx.lineWidth=3;ctx.strokeRect(W/2-130,H/2-35,260,80);
+        ctx.fillStyle='#c8a840';ctx.font='14px "Press Start 2P", monospace';ctx.textAlign='center';
+        ctx.fillText('第一章 完成',W/2,H/2-10);
+        ctx.fillStyle='#ffe0a0';ctx.font='10px "Press Start 2P", monospace';
+        ctx.fillText('→ 前往巴黎 →',W/2,H/2+22);
+    }
+
+    // ==== 对话 UI ====
+    if(G.dialogueActive)drawDialogueUI();
+
+    // ==== 浮动文本 ====
+    if(G.showText){
+        G.showTextTimer--;
+        const fa2=Math.min(1,G.showTextTimer/30);
+        ctx.fillStyle=`rgba(0,0,0,${0.78*fa2})`;
+        ctx.fillRect(30,H/2-36,W-60,50);
+        ctx.strokeStyle=`rgba(200,160,60,${fa2})`;ctx.lineWidth=2;
+        ctx.strokeRect(30,H/2-36,W-60,50);
+        ctx.fillStyle=`rgba(255,255,255,${fa2})`;ctx.font='10px "Press Start 2P", monospace';ctx.textAlign='center';
+        const words=wrapText(G.showText,W-100);
+        for(let i=0;i<Math.min(words.length,3);i++){ctx.fillText(words[i],W/2,H/2-22+i*14);}
+        if(G.showTextTimer<=0)G.showText='';
+    }
+}
+
+function drawDialogueUI(){
+    const dy=H-150;
+    ctx.fillStyle='rgba(0,0,0,0.9)';ctx.fillRect(0,dy,W,154);
+    ctx.strokeStyle='#5a4030';ctx.lineWidth=3;ctx.strokeRect(0,dy,W,154);
+    ctx.strokeStyle='#c8a840';ctx.lineWidth=1;ctx.strokeRect(2,dy+2,W-4,150);
+
+    const sn=G.characters[G.dialogueSpeaker]?G.characters[G.dialogueSpeaker].name:G.dialogueSpeaker;
+    ctx.fillStyle='#c8a840';ctx.font='11px "Press Start 2P", monospace';ctx.textAlign='left';ctx.fillText(sn,16,dy+18);
+
+    if(G.dialogueText){
+        ctx.fillStyle='#f0ead8';ctx.font='9px "Press Start 2P", monospace';
+        const ww=wrapText(G.dialogueText,W-36);
+        for(let i=0;i<Math.min(ww.length,3);i++){ctx.fillText(ww[i],16,dy+38+i*14);}
+    }
+
+    if(G.dialogueChoices.length>0){
+        for(let i=0;i<G.dialogueChoices.length;i++){
+            const bx=14,by=dy+80+i*22,c=G.dialogueChoices[i];
+            const h=mouseX>=bx&&mouseX<=bx+W-28&&mouseY>=by&&mouseY<=by+20;
+            ctx.fillStyle=h?'#3a2a1a':'#1a1008';ctx.fillRect(bx,by,W-28,20);
+            ctx.strokeStyle=h?'#c8a840':'#5a4030';ctx.lineWidth=1.5;ctx.strokeRect(bx,by,W-28,20);
+            ctx.fillStyle=h?'#fff':'#aaa';ctx.font='8px "Press Start 2P", monospace';
+            ctx.fillText('\u25B6 '+c.text,bx+8,by+14);
+        }
+    }
+}
+
+function wrapText(text,maxW){
+    const chars=text.split(''),lines=[],cw=9;
+    let cur='';
+    for(let i=0;i<chars.length;i++){
+        if((cur+chars[i]).length*cw>maxW){lines.push(cur);cur=chars[i];}
+        else cur+=chars[i];
+    }
+    if(cur)lines.push(cur);return lines;
+}
+
+// ============================================
+// 主循环
+// ============================================
+function gameLoop(){
+    ctx.clearRect(0,0,W,H);
+    drawScene();
+    drawCandleLight();
+
+    // 父亲计时
+    if(G.hasFlag('letterRead')&&!G.characters.father.visible&&G.fatherTimer>0){
+        G.fatherTimer--;
+        if(G.fatherTimer<=0){G.characters.father.visible=true;G.showFloatingText('父亲推门而入……');}
+    }
+
+    // 画作动画
+    if(G.animatingPainting)updatePaintingAnim();
+
+    updateFlash();
+
+    // 物品
+    drawCandle();
+    const st=INTERACTABLES.scarlet_tube;
+    if(!G.hasItem('猩红')&&(st.hidden?G.hasFlag(st.visibleCondition):true))drawPaintTube(st.position.x,st.position.y,'#b22222','#d44444');
+    if(!G.hasItem('钴蓝')){const ct=INTERACTABLES.cobalt_tube;drawPaintTube(ct.position.x,ct.position.y,'#2244aa','#4466cc');}
+    drawTrashBasket();
+    const cht=INTERACTABLES.chrome_tube;
+    if(!G.hasItem('铬黄')&&(cht.hidden?G.hasFlag(cht.visibleCondition):true))drawPaintTube(cht.position.x,cht.position.y,'#c8a000','#e8c020');
+    drawLetter();
+    drawBible();
+    drawEasel();
+
+    // 人物
+    drawCharacter(G.characters.vincent,isHoverCh(G.characters.vincent));
+    drawCharacter(G.characters.mother,isHoverCh(G.characters.mother));
+    if(G.characters.father.visible)drawCharacter(G.characters.father,isHoverCh(G.characters.father));
+
+    // UI
+    drawUI();
+
+    requestAnimationFrame(gameLoop);
+}
+gameLoop();
+})();
+</script>
+</body>
+</html>
